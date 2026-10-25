@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Trash2 } from 'lucide-react';
-import Modal, { btnPrimary, btnSecondary, inputCls, labelCls } from './Modal';
+import { Loader2, Trash2 } from 'lucide-react';
+import Modal, { FormError, btnPrimary, btnSecondary, inputCls, labelCls } from './Modal';
 import { useExpenses } from '../context/ExpensesContext';
 import { CATEGORIES, CONCEPT_SUGGESTIONS } from '../data/categories';
-import { todayISO } from '../utils/formatters';
+import { amountToInput, parseAmount, todayISO } from '../utils/formatters';
+
+const MAX_CONCEPT = 120;
 
 function emptyForm(monthKeyStr) {
   const today = todayISO();
@@ -22,21 +24,26 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
   const { addExpense, updateExpense, profiles, childrenList, key } = useExpenses();
   const [form, setForm] = useState(() => emptyForm(key));
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   useEffect(() => {
     if (!open) return;
-    setForm(expense ? { ...expense, amount: String(expense.amount) } : emptyForm(key));
+    setForm(expense ? { ...expense, amount: amountToInput(expense.amount) } : emptyForm(key));
     setErrors({});
+    setSaveError(null);
+    setSaving(false);
   }, [open, expense, key]);
 
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }));
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    const amount = Number(String(form.amount).replace(',', '.'));
+    if (saving) return;
+    const amount = parseAmount(form.amount);
     const errs = {};
     if (!form.concept.trim()) errs.concept = 'Ingresá un concepto';
-    if (!amount || amount <= 0) errs.amount = 'Ingresá un monto mayor a 0';
+    if (amount === null) errs.amount = 'Ingresá un monto válido, por ejemplo 15.000 o 1.500,50';
     if (!form.date) errs.date = 'Elegí una fecha';
     setErrors(errs);
     if (Object.keys(errs).length) return;
@@ -49,11 +56,23 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
       category: form.category,
       date: form.date,
     };
-    if (expense) updateExpense(expense.id, data);
-    else addExpense(data);
-    onSaved?.(expense ? 'Gasto actualizado' : 'Gasto añadido con éxito');
+    setSaving(true);
+    setSaveError(null);
+    // Se espera la confirmación de la base: si falla, el error queda visible acá y no se cierra.
+    const err = expense ? await updateExpense(expense.id, data) : await addExpense(data);
+    setSaving(false);
+    if (err) {
+      setSaveError(`No se pudo guardar: ${err}`);
+      return;
+    }
+    const otherMonth = !data.date.startsWith(key);
+    onSaved?.(otherMonth ? 'Gasto guardado en otro mes' : expense ? 'Gasto actualizado' : 'Gasto guardado');
     onClose();
   };
+
+  // Si el hijo/a fue renombrado, el gasto viejo conserva su nombre como opción.
+  const childOptions = [...childrenList, 'Ambos'];
+  if (form.child && !childOptions.includes(form.child)) childOptions.push(form.child);
 
   return (
     <Modal
@@ -70,8 +89,9 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
           <button type="button" onClick={onClose} className={btnSecondary}>
             Cancelar
           </button>
-          <button type="submit" form="expense-form" className={btnPrimary}>
-            {expense ? 'Guardar cambios' : 'Guardar gasto'}
+          <button type="submit" form="expense-form" className={btnPrimary} disabled={saving}>
+            {saving && <Loader2 size={15} className="animate-spin" />}
+            {saving ? 'Guardando…' : expense ? 'Guardar cambios' : 'Guardar gasto'}
           </button>
         </>
       }
@@ -83,8 +103,10 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
             id="concept"
             autoFocus={!expense}
             value={form.concept}
+            maxLength={MAX_CONCEPT}
             onChange={(e) => set('concept', e.target.value)}
             placeholder="Ej. Colegio, Pediatra, Zapatillas"
+            aria-invalid={Boolean(errors.concept)}
             className={inputCls}
           />
           <div className="no-scrollbar mt-1.5 flex gap-1 overflow-x-auto">
@@ -93,13 +115,13 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
                 key={s}
                 type="button"
                 onClick={() => set('concept', s)}
-                className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600 transition hover:bg-brand-50 hover:text-brand-700"
+                className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-[12px] text-slate-600 transition hover:bg-brand-50 hover:text-brand-700"
               >
                 {s}
               </button>
             ))}
           </div>
-          {errors.concept && <p className="mt-1 text-[11px] text-amber-600">{errors.concept}</p>}
+          {errors.concept && <p className="mt-1 text-[12px] text-amber-700">{errors.concept}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -107,24 +129,30 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
             <label className={labelCls} htmlFor="amount">Monto ($)</label>
             <div className="relative">
               <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[13px] text-slate-500">$</span>
+              {/* Texto (no number): así se puede escribir "1.500,50" como en Argentina. */}
               <input
                 id="amount"
-                type="number"
+                type="text"
                 inputMode="decimal"
-                min="0"
-                step="0.01"
+                autoComplete="off"
                 value={form.amount}
-                onChange={(e) => set('amount', e.target.value)}
-                placeholder="35000"
-                className={`${inputCls} pl-6 text-[14px] font-bold tabular-nums`}
+                onChange={(e) => set('amount', e.target.value.replace(/[^\d.,]/g, ''))}
+                placeholder="15.000"
+                aria-invalid={Boolean(errors.amount)}
+                aria-describedby={errors.amount ? 'amount-error' : undefined}
+                className={`${inputCls} pl-6 text-[15px] font-bold tabular-nums`}
               />
             </div>
-            {errors.amount && <p className="mt-1 text-[11px] text-amber-600">{errors.amount}</p>}
+            {errors.amount && (
+              <p id="amount-error" className="mt-1 text-[12px] text-amber-700">
+                {errors.amount}
+              </p>
+            )}
           </div>
           <div>
             <label className={labelCls} htmlFor="date">Fecha</label>
             <input id="date" type="date" value={form.date} onChange={(e) => set('date', e.target.value)} className={inputCls} />
-            {errors.date && <p className="mt-1 text-[11px] text-amber-600">{errors.date}</p>}
+            {errors.date && <p className="mt-1 text-[12px] text-amber-700">{errors.date}</p>}
           </div>
         </div>
 
@@ -137,7 +165,7 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
                 type="button"
                 onClick={() => set('paidBy', who)}
                 aria-pressed={form.paidBy === who}
-                className={`rounded-xl border py-2 text-[12px] font-semibold transition-all ${
+                className={`rounded-xl border py-2.5 text-[13px] font-semibold transition-all ${
                   form.paidBy === who ? 'border-slate-900 bg-slate-900 text-white shadow-xs' : 'border-slate-200 bg-white text-slate-700'
                 }`}
               >
@@ -150,23 +178,23 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className={labelCls} htmlFor="child">Hijo/a</label>
-            <select id="child" value={form.child} onChange={(e) => set('child', e.target.value)} className={`${inputCls} px-2 text-[12px]`}>
+            <select id="child" value={form.child} onChange={(e) => set('child', e.target.value)} className={`${inputCls} px-2 text-[13px]`}>
               <option value="">Sin asignar</option>
-              {childrenList.map((c) => (
+              {childOptions.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
-              <option value="Ambos">Ambos</option>
             </select>
           </div>
           <div>
             <label className={labelCls} htmlFor="category">Categoría</label>
-            <select id="category" value={form.category} onChange={(e) => set('category', e.target.value)} className={`${inputCls} px-2 text-[12px]`}>
+            <select id="category" value={form.category} onChange={(e) => set('category', e.target.value)} className={`${inputCls} px-2 text-[13px]`}>
               {CATEGORIES.map((c) => (
                 <option key={c.id} value={c.id}>{c.label}</option>
               ))}
             </select>
           </div>
         </div>
+        <FormError>{saveError}</FormError>
       </form>
     </Modal>
   );

@@ -13,7 +13,7 @@ function ParentBlock({ name, pct, quota, paid, balance }) {
         <span>Cuota objetivo {name} ({pct}%):</span>
         <span className="font-medium tabular-nums">{formatMoney(quota)}</span>
       </div>
-      <div className="flex justify-between text-[11px] text-slate-400">
+      <div className="flex justify-between text-[11px] text-slate-500">
         <span>Abonado por {name}:</span>
         <span className="tabular-nums">{formatMoney(paid)}</span>
       </div>
@@ -25,7 +25,7 @@ function ParentBlock({ name, pct, quota, paid, balance }) {
   );
 }
 
-/** "Liquidación transparente": desglose paso a paso del cálculo. */
+/** "Cómo se calcula": desglose paso a paso del cálculo. */
 export default function BreakdownModal({ open, onClose }) {
   const { settlement: s, profiles, monthExpenses } = useExpenses();
   const byCat = Object.entries(totalsByCategory(monthExpenses)).sort((a, b) => b[1] - a[1]);
@@ -34,7 +34,7 @@ export default function BreakdownModal({ open, onClose }) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Liquidación transparente"
+      title="Cómo se calcula"
       footer={
         <button onClick={onClose} className={btnPrimary}>
           Entendido
@@ -60,11 +60,10 @@ export default function BreakdownModal({ open, onClose }) {
 
         <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-[12px] font-medium text-emerald-900">
           {s.isBalanced ? (
-            <>✅ No hay saldo a compensar: ambos aportaron exactamente su cuota.</>
+            <>No hay saldo a compensar: cada uno aportó exactamente lo acordado.</>
           ) : (
             <>
-              💡 Con una única transferencia de <strong>{formatMoney(s.amountToTransfer)}</strong> de {profiles[s.debtor].name} hacia{' '}
-              {profiles[s.creditor].name}, la participación queda exactamente en la cuota fijada.
+              Si {profiles[s.debtor].name} le transfiere <strong>{formatMoney(s.amountToTransfer)}</strong> a {profiles[s.creditor].name}, cada uno queda aportando lo acordado.
             </>
           )}
         </div>

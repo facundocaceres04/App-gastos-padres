@@ -14,7 +14,8 @@ export default function AuthScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
-  const inviteCode = new URLSearchParams(window.location.search).get('codigo');
+  // Solo letras y números: el parámetro de la URL no puede inyectar texto en el mensaje.
+  const inviteCode = (new URLSearchParams(window.location.search).get('codigo') ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -42,7 +43,7 @@ export default function AuthScreen() {
 
         {inviteCode && (
           <div className="mb-3 rounded-xl border border-sage-100 bg-sage-50 p-3 text-[12px] text-sage-700">
-            Te invitaron a una familia con el código <strong className="font-mono">{inviteCode.toUpperCase()}</strong>. Creá tu cuenta o
+            Te invitaron a una familia con el código <strong className="font-mono">{inviteCode}</strong>. Creá tu cuenta o
             iniciá sesión para unirte.
           </div>
         )}
@@ -62,7 +63,7 @@ export default function AuthScreen() {
                   setInfo('');
                 }}
                 className={`rounded-lg py-1.5 text-[12px] transition-all ${
-                  mode === id ? 'bg-white font-semibold text-slate-900 shadow-xs' : 'font-medium text-slate-600'
+                  mode === id ? 'bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-300' : 'font-medium text-slate-600'
                 }`}
               >
                 {label}

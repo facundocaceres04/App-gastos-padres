@@ -65,7 +65,7 @@ export default function HeroCard({ onShowBreakdown, onShowBank }) {
               <div className="font-display text-[19px] font-bold tracking-tight text-slate-900 tabular-nums sm:text-[22px]">
                 {formatMoney(s.amountToTransfer)}
               </div>
-              <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600">Compensación</span>
+              <span className="text-[11px] font-medium text-slate-500">Saldo del mes</span>
             </div>
           </div>
         </div>
@@ -97,6 +97,7 @@ export default function HeroCard({ onShowBreakdown, onShowBank }) {
         </div>
       )}
 
+      {!isEmpty && (
       <div className="space-y-1.5 border-t border-slate-100 pt-2">
         <div className="flex items-center justify-between gap-2 text-[11px] text-slate-600">
           <span className="flex min-w-0 items-center gap-1 font-medium">
@@ -126,11 +127,12 @@ export default function HeroCard({ onShowBreakdown, onShowBank }) {
             title={`Cuota acordada: ${s.pctFather}% / ${s.pctMother}%`}
           />
         </div>
-        <div className="flex items-center justify-between text-[10px] text-slate-400">
+        <div className="flex items-center justify-between text-[11px] text-slate-500">
           <span>Objetivo {s.pctFather}% ({formatMoney(s.quotaFather)})</span>
           <span>Objetivo {s.pctMother}% ({formatMoney(s.quotaMother)})</span>
         </div>
       </div>
+      )}
     </section>
   );
 }

@@ -51,3 +51,25 @@ export const uid = () =>
   '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) =>
     (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16),
   );
+
+export const MAX_AMOUNT = 1_000_000_000;
+
+/**
+ * Interpreta montos escritos como en Argentina: "1.500" → 1500, "1.500,50" → 1500.5,
+ * "35000" → 35000, "0,5" → 0.5. También acepta "1500.50". Devuelve null si no es válido.
+ */
+export function parseAmount(input) {
+  let s = String(input ?? '').trim().replace(/[$\s]/g, '');
+  if (!s) return null;
+  if (s.includes(',')) {
+    s = s.replace(/\./g, '').replace(',', '.'); // coma decimal: los puntos son de miles
+  } else if (/^\d{1,3}(\.\d{3})+$/.test(s)) {
+    s = s.replace(/\./g, ''); // solo puntos de miles
+  }
+  if (!/^\d+(\.\d{1,2})?$/.test(s)) return null;
+  const n = Number(s);
+  return n > 0 && n <= MAX_AMOUNT ? n : null;
+}
+
+/** 1500.5 → "1500,5" (para mostrar un monto en un campo editable). */
+export const amountToInput = (n) => (n == null ? '' : String(n).replace('.', ','));

@@ -7,7 +7,7 @@ import { inputCls, labelCls } from '../components/Modal';
 /** Primer ingreso: crear la familia (y obtener el código) o unirse con un código. */
 export default function OnboardingScreen() {
   const { user, createHousehold, joinHousehold, signOut } = useAuth();
-  const initialCode = (new URLSearchParams(window.location.search).get('codigo') ?? '').toUpperCase();
+  const initialCode = (new URLSearchParams(window.location.search).get('codigo') ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
   const [tab, setTab] = useState(initialCode ? 'join' : 'create');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -46,7 +46,7 @@ export default function OnboardingScreen() {
 
   const join = (e) => {
     e.preventDefault();
-    if (code.trim().length < 4) return setError('Ingresá el código que te compartieron');
+    if (code.trim().length !== 6) return setError('El código tiene 6 caracteres. Revisalo y volvé a intentar.');
     run(() => joinHousehold(code.trim()));
   };
 
@@ -87,7 +87,7 @@ export default function OnboardingScreen() {
                   setError('');
                 }}
                 className={`flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-[12px] transition-all ${
-                  tab === id ? 'bg-white font-semibold text-slate-900 shadow-xs' : 'font-medium text-slate-600'
+                  tab === id ? 'bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-300' : 'font-medium text-slate-600'
                 }`}
               >
                 <Icon size={13} /> {label}

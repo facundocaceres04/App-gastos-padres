@@ -1,7 +1,5 @@
-import { sumPaidBy, totalsByCategory } from './calculator';
+import { round2, sumPaidBy, totalsByCategory } from './calculator';
 import { MONTHS, monthKey } from './formatters';
-
-const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 const inMonth = (expenses, key) => expenses.filter((e) => e.date.startsWith(key));
 
@@ -77,7 +75,7 @@ export function childBreakdown(monthExpenses, childrenList) {
 
 /** Formato compacto para ejes: 1.250.000 → "1,3M", 85.000 → "85K". */
 export function compactMoney(n) {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toLocaleString('es-AR', { maximumFractionDigits: 1 })}M`;
+  if (n >= 999_500) return `$${(n / 1_000_000).toLocaleString('es-AR', { maximumFractionDigits: 1 })}M`;
   if (n >= 1_000) return `$${Math.round(n / 1_000)}K`;
   return `$${Math.round(n)}`;
 }

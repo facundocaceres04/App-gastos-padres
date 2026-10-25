@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, ChartPie, CheckCircle2, Loader2, Percent, Settings, Trash2, UserPlus, Wallet } from 'lucide-react';
+import { AlertCircle, ChartPie, CheckCircle2, CloudOff, Loader2, Percent, Settings, Trash2, UserPlus, Wallet, X } from 'lucide-react';
 import { useExpenses } from '../context/ExpensesContext';
 import Header from '../components/Header';
 import HeroCard from '../components/HeroCard';
@@ -16,11 +16,15 @@ import ShareModal from '../components/ShareModal';
 import WhatsAppPreviewModal from '../components/WhatsAppPreviewModal';
 import AnalysisView from '../components/analysis/AnalysisView';
 import Modal, { btnPrimary, btnSecondary } from '../components/Modal';
+import RetryScreen from '../components/RetryScreen';
+import { useOnline } from '../utils/useOnline';
 import { buildWhatsAppSummary, copyToClipboard } from '../utils/whatsapp';
 import { formatMoney } from '../utils/formatters';
 
 export default function Dashboard() {
-  const { loaded, error, clearError, label, settlement, monthExpenses, profiles, otherRole, partnerJoined, deleteExpense } = useExpenses();
+  const { loaded, loadError, reload, error, clearError, label, settlement, monthExpenses, profiles, otherRole, partnerJoined, deleteExpense } =
+    useExpenses();
+  const online = useOnline();
 
   // Un solo modal abierto a la vez
   const [modal, setModal] = useState(null); // 'form' | 'breakdown' | 'bank' | 'split' | 'settings' | 'share' | 'whatsapp' | 'delete'
@@ -36,9 +40,10 @@ export default function Dashboard() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  // Los errores no desaparecen solos tan rápido: hay que poder leerlos (o cerrarlos).
   useEffect(() => {
     if (!error) return;
-    const t = setTimeout(clearError, 4000);
+    const t = setTimeout(clearError, 9000);
     return () => clearTimeout(t);
   }, [error, clearError]);
 
@@ -62,20 +67,18 @@ export default function Dashboard() {
   const goTo = (id, navId) => {
     setNav(navId);
     // Si venimos de Análisis, esperamos a que se pinte el panel antes de scrollear.
+    const behavior = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
     requestAnimationFrame(() => {
-      if (id) document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-      else window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (id) document.getElementById(id)?.scrollIntoView({ behavior });
+      else window.scrollTo({ top: 0, behavior });
     });
   };
 
   if (!loaded) {
+    if (loadError) return <RetryScreen message={loadError} onRetry={reload} />;
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-surface">
-        {error ? (
-          <p className="max-w-xs text-center text-[13px] text-slate-600">{error}</p>
-        ) : (
-          <Loader2 size={24} className="animate-spin text-slate-400" />
-        )}
+      <div className="flex min-h-dvh items-center justify-center bg-surface" role="status" aria-label="Cargando">
+        <Loader2 size={24} className="animate-spin text-slate-400" />
       </div>
     );
   }
@@ -83,6 +86,11 @@ export default function Dashboard() {
   return (
     <div className="min-h-dvh bg-surface">
       <Header onAdd={openNew} onCustomSplit={() => setModal('split')} />
+      {!online && (
+        <div role="status" className="flex items-center justify-center gap-2 bg-amber-50 px-4 py-2 text-[12px] text-amber-800">
+          <CloudOff size={14} /> Sin conexión. Los cambios no se van a guardar hasta que vuelvas a tener internet.
+        </div>
+      )}
 
       <main className="mx-auto max-w-[440px] px-4 pt-3 pb-28 sm:max-w-xl lg:max-w-5xl lg:px-8 lg:pt-5 lg:pb-12">
         {/* Pestañas de escritorio (en mobile se usa la barra inferior) */}
@@ -97,7 +105,7 @@ export default function Dashboard() {
                 onClick={() => goTo(null, id)}
                 aria-current={view === id ? 'page' : undefined}
                 className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[12px] transition-all ${
-                  view === id ? 'bg-white font-semibold text-slate-900 shadow-xs' : 'font-medium text-slate-600 hover:text-slate-900'
+                  view === id ? 'bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-300' : 'font-medium text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <Icon size={14} /> {text}
@@ -147,7 +155,9 @@ export default function Dashboard() {
 
             <div className="mt-3.5 lg:mt-0">
               <ExpenseList onEdit={openEdit} onDelete={askDelete} onAdd={openNew} />
-              <p className="pt-6 text-center text-[11px] text-slate-400">Cuentas Claras · Sincronizado en tiempo real entre los dos.</p>
+              <p className="pt-6 text-center text-[12px] text-slate-500">
+                {online ? 'Cuentas Claras · Los cambios se ven al instante en los dos teléfonos.' : 'Cuentas Claras · Sin conexión'}
+              </p>
             </div>
           </div>
         )}
@@ -192,10 +202,9 @@ export default function Dashboard() {
           <>
             <button onClick={close} className={btnSecondary}>Cancelar</button>
             <button
-              onClick={() => {
-                deleteExpense(toDelete.id);
+              onClick={async () => {
                 close();
-                setToast('Gasto eliminado');
+                if (!(await deleteExpense(toDelete.id))) setToast('Gasto eliminado');
               }}
               className={btnPrimary}
             >
@@ -206,17 +215,29 @@ export default function Dashboard() {
       >
         {toDelete && (
           <p className="text-[12px] text-slate-600">
-            <strong className="text-slate-900">{toDelete.concept}</strong> · {formatMoney(toDelete.amount)}. El cierre del mes se recalculará
-            automáticamente.
+            <strong className="text-slate-900">{toDelete.concept}</strong> · {formatMoney(toDelete.amount)}. Se borra para los dos y el balance
+            se actualiza.
           </p>
         )}
       </Modal>
 
       {(error || toast) && (
-        <div className="fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 lg:bottom-8">
-          <div role="status" className="animate-toast-in flex items-center gap-1.5 rounded-full bg-slate-900 px-3.5 py-2 text-[11px] font-medium whitespace-nowrap text-white shadow-lg">
-            {error ? <AlertCircle size={14} className="text-amber-400" /> : <CheckCircle2 size={14} className="text-emerald-400" />}
-            {error ?? toast}
+        <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex justify-center px-4 lg:bottom-8">
+          <div
+            role={error ? 'alert' : 'status'}
+            className="animate-toast-in pointer-events-auto flex max-w-md items-start gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-[13px] font-medium text-white shadow-lg"
+          >
+            {error ? (
+              <AlertCircle size={16} className="mt-0.5 shrink-0 text-amber-400" />
+            ) : (
+              <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-400" />
+            )}
+            <span>{error ?? toast}</span>
+            {error && (
+              <button onClick={clearError} className="-my-1 -mr-2 ml-1 shrink-0 rounded-full p-1.5 text-slate-400 hover:text-white" aria-label="Cerrar">
+                <X size={14} />
+              </button>
+            )}
           </div>
         </div>
       )}

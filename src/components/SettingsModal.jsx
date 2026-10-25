@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { LogOut, Monitor, Moon, Settings, Sun, UserPlus } from 'lucide-react';
-import Modal, { btnPrimary, btnSecondary, inputCls, labelCls } from './Modal';
+import { Loader2, LogOut, Monitor, Moon, Settings, Sun, UserPlus } from 'lucide-react';
+import Modal, { FormError, btnPrimary, btnSecondary, inputCls, labelCls } from './Modal';
 import { useExpenses } from '../context/ExpensesContext';
 import { useAuth } from '../context/AuthContext';
 import { getThemePref, setThemePref } from '../utils/theme';
@@ -18,22 +18,32 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
   const [draft, setDraft] = useState(profiles);
   const [kids, setKids] = useState(childrenList.join(', '));
   const [theme, setTheme] = useState(getThemePref);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
+  // El borrador se inicializa SOLO al abrir: si llega un cambio del otro mientras escribís
+  // (o volvés de la app del banco), no se pisa lo que estabas cargando.
   useEffect(() => {
-    if (open) {
-      setDraft(profiles);
-      setKids(childrenList.join(', '));
-    }
-  }, [open, profiles, childrenList]);
+    if (!open) return;
+    setDraft(profiles);
+    setKids(childrenList.join(', '));
+    setTheme(getThemePref());
+    setSaveError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const setField = (who, field, value) => setDraft((d) => ({ ...d, [who]: { ...d[who], [field]: value } }));
 
-  const save = () => {
-    setProfiles({
-      padre: { name: draft.padre.name.trim() || 'Padre', alias: draft.padre.alias.trim() },
-      madre: { name: draft.madre.name.trim() || 'Madre', alias: draft.madre.alias.trim() },
-    });
-    setChildrenList(kids.split(',').map((k) => k.trim()).filter(Boolean));
+  const save = async () => {
+    setSaving(true);
+    setSaveError(null);
+    const err =
+      (await setProfiles({
+        padre: { name: draft.padre.name.trim() || 'Padre', alias: draft.padre.alias.trim() },
+        madre: { name: draft.madre.name.trim() || 'Madre', alias: draft.madre.alias.trim() },
+      })) ?? (await setChildrenList(kids.split(',').map((k) => k.trim()).filter(Boolean)));
+    setSaving(false);
+    if (err) return setSaveError(`No se pudo guardar: ${err}`);
     onSaved?.('Ajustes guardados');
     onClose();
   };
@@ -47,7 +57,10 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
       footer={
         <>
           <button onClick={onClose} className={btnSecondary}>Cancelar</button>
-          <button onClick={save} className={btnPrimary}>Guardar</button>
+          <button onClick={save} className={btnPrimary} disabled={saving}>
+            {saving && <Loader2 size={15} className="animate-spin" />}
+            {saving ? 'Guardando…' : 'Guardar'}
+          </button>
         </>
       }
     >
@@ -65,7 +78,7 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
                 }}
                 aria-pressed={theme === id}
                 className={`flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-[12px] transition-all ${
-                  theme === id ? 'bg-white font-semibold text-slate-900 shadow-xs' : 'font-medium text-slate-600 hover:text-slate-900'
+                  theme === id ? 'bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-300' : 'font-medium text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <Icon size={13} /> {text}
@@ -93,9 +106,18 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
               {legend} {who === myRole && <span className="normal-case text-brand-600">(vos)</span>}
             </legend>
             <div className="grid grid-cols-2 gap-2">
-              <input value={draft[who].name} onChange={(e) => setField(who, 'name', e.target.value)} placeholder="Nombre" className={inputCls} />
+              <input
+                value={draft[who].name}
+                onChange={(e) => setField(who, 'name', e.target.value)}
+                placeholder="Nombre"
+                aria-label={`Nombre (${legend})`}
+                maxLength={40}
+                className={inputCls}
+              />
               <input
                 value={draft[who].alias}
+                aria-label={`CBU o Alias (${legend})`}
+                maxLength={40}
                 onChange={(e) => setField(who, 'alias', e.target.value)}
                 placeholder="CBU o Alias"
                 className={`${inputCls} font-mono text-[12px]`}
@@ -107,6 +129,8 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
           <label className={labelCls} htmlFor="kids">Hijos/as (separados por coma)</label>
           <input id="kids" value={kids} onChange={(e) => setKids(e.target.value)} placeholder="Mateo, Sofía" className={inputCls} />
         </div>
+
+        <FormError>{saveError}</FormError>
 
         <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-[12px] text-slate-500">
           <span className="truncate">{user?.email}</span>

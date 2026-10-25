@@ -1,24 +1,35 @@
 import { useEffect, useState } from 'react';
-import { Percent } from 'lucide-react';
-import Modal, { btnPrimary, btnSecondary } from './Modal';
+import { Loader2, Percent } from 'lucide-react';
+import Modal, { FormError, btnPrimary, btnSecondary } from './Modal';
+import { MONTHS } from '../utils/formatters';
 import { useExpenses } from '../context/ExpensesContext';
 
 /** "Acuerdo": proporción personalizada para el mes seleccionado. */
 export default function SplitConfigModal({ open, onClose, onSaved }) {
   const { config, setFatherPct, profiles, label } = useExpenses();
   const [pct, setPct] = useState(config.fatherPct);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   useEffect(() => {
-    if (open) setPct(config.fatherPct);
-  }, [open, config.fatherPct]);
+    if (!open) return;
+    setPct(config.fatherPct);
+    setSaveError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const clamp = (n) => Math.min(100, Math.max(0, Math.round(Number(n) || 0)));
 
-  const save = () => {
-    setFatherPct(clamp(pct));
-    onSaved?.(`Distribución pactada: ${clamp(pct)} / ${100 - clamp(pct)}`);
+  const save = async () => {
+    setSaving(true);
+    const err = await setFatherPct(clamp(pct));
+    setSaving(false);
+    if (err) return setSaveError(`No se pudo guardar: ${err}`);
+    onSaved?.(`Acuerdo guardado: ${clamp(pct)} / ${100 - clamp(pct)}`);
     onClose();
   };
+
+  const inherited = config.inheritedFrom ? MONTHS[Number(config.inheritedFrom.slice(5)) - 1].toLowerCase() : null;
 
   return (
     <Modal
@@ -29,13 +40,17 @@ export default function SplitConfigModal({ open, onClose, onSaved }) {
       footer={
         <>
           <button onClick={onClose} className={btnSecondary}>Cancelar</button>
-          <button onClick={save} className={btnPrimary}>Guardar acuerdo</button>
+          <button onClick={save} className={btnPrimary} disabled={saving}>
+            {saving && <Loader2 size={15} className="animate-spin" />}
+            {saving ? 'Guardando…' : 'Guardar acuerdo'}
+          </button>
         </>
       }
     >
       <div className="space-y-4">
         <p className="text-[12px] leading-relaxed text-slate-600">
           Definí qué parte del total le corresponde a cada uno. El cierre se recalcula al instante.
+          {inherited && <> Este mes usa el acuerdo de {inherited} hasta que lo cambien.</>}
         </p>
         <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
           <div className="mb-3 flex items-end justify-between">
@@ -75,6 +90,7 @@ export default function SplitConfigModal({ open, onClose, onSaved }) {
             % para {profiles.padre.name}
           </label>
         </div>
+        <FormError>{saveError}</FormError>
       </div>
     </Modal>
   );

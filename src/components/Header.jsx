@@ -43,14 +43,14 @@ export default function Header({ onAdd, onCustomSplit }) {
 
           <div className="flex shrink-0 items-center gap-1.5">
             <div className="inline-flex items-center rounded-full border border-slate-200 bg-white text-[12px] font-medium text-slate-700 shadow-xs">
-              <button onClick={() => shiftMonth(-1)} className="rounded-l-full py-1 pr-0.5 pl-1.5 text-slate-400 hover:text-slate-700" aria-label="Mes anterior">
+              <button onClick={() => shiftMonth(-1)} className="flex h-9 w-8 items-center justify-center rounded-l-full text-slate-500 hover:text-slate-800" aria-label="Mes anterior">
                 <ChevronLeft size={14} />
               </button>
               <span className="flex items-center gap-1 px-1 py-1">
                 <CalendarDays size={13} className="text-slate-400" />
                 {label}
               </span>
-              <button onClick={() => shiftMonth(1)} className="rounded-r-full py-1 pr-1.5 pl-0.5 text-slate-400 hover:text-slate-700" aria-label="Mes siguiente">
+              <button onClick={() => shiftMonth(1)} className="flex h-9 w-8 items-center justify-center rounded-r-full text-slate-500 hover:text-slate-800" aria-label="Mes siguiente">
                 <ChevronRight size={14} />
               </button>
             </div>
@@ -66,7 +66,7 @@ export default function Header({ onAdd, onCustomSplit }) {
               onClick={onAdd}
               className="hidden items-center gap-1 rounded-xl bg-slate-900 px-3 py-1.5 text-[12px] font-semibold text-white shadow-xs transition hover:bg-slate-800 active:scale-[0.98] lg:flex"
             >
-              <Plus size={15} /> Añadir gasto
+              <Plus size={15} /> Agregar gasto
             </button>
           </div>
         </div>
@@ -80,7 +80,7 @@ export default function Header({ onAdd, onCustomSplit }) {
                 key={p}
                 onClick={() => setFatherPct(p)}
                 className={`shrink-0 rounded-lg px-2.5 py-1 text-[11px] tabular-nums transition-all ${
-                  pct === p ? 'bg-white font-semibold text-slate-900 shadow-xs' : 'font-medium text-slate-600 hover:text-slate-900'
+                  pct === p ? 'bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-300' : 'font-medium text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {p} / {100 - p}
@@ -89,7 +89,7 @@ export default function Header({ onAdd, onCustomSplit }) {
             <button
               onClick={onCustomSplit}
               className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] transition-all ${
-                !isPreset ? 'bg-white font-semibold text-slate-900 shadow-xs' : 'font-medium text-slate-600 hover:text-slate-900'
+                !isPreset ? 'bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-300' : 'font-medium text-slate-600 hover:text-slate-900'
               }`}
               aria-label="Porcentaje personalizado"
             >

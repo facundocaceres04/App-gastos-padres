@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { friendlyError, supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
@@ -7,7 +7,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(undefined); // undefined = cargando
   // Familia del usuario, guardada junto con el id del usuario al que corresponde.
-  const [membershipState, setMembershipState] = useState({ userId: undefined, data: undefined });
+  const [membershipState, setMembershipState] = useState({ userId: undefined, data: undefined, error: null });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
 
   const loadMembership = useCallback(async () => {
     if (!userId) {
-      setMembershipState({ userId: null, data: null });
+      setMembershipState({ userId: null, data: null, error: null });
       return;
     }
     const { data, error } = await supabase
@@ -28,7 +28,7 @@ export function AuthProvider({ children }) {
       .eq('user_id', userId)
       .maybeSingle();
     if (error) throw error;
-    setMembershipState({ userId, data: data ?? null });
+    setMembershipState({ userId, data: data ?? null, error: null });
   }, [userId]);
 
   // Supabase emite varios eventos de sesión (INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED);
@@ -36,17 +36,25 @@ export function AuthProvider({ children }) {
   const sessionReady = session !== undefined;
   useEffect(() => {
     if (!sessionReady) return;
-    loadMembership().catch(() => setMembershipState({ userId: userId ?? null, data: null }));
+    // Un error de red NO significa "sin familia": se muestra para reintentar, no el onboarding.
+    loadMembership().catch((e) => setMembershipState({ userId: userId ?? null, data: undefined, error: friendlyError(e) }));
   }, [sessionReady, loadMembership, userId]);
 
   // Mientras no se cargó la familia del usuario actual, se considera "cargando".
-  const membership = membershipState.userId === (userId ?? null) ? membershipState.data : undefined;
+  const isCurrent = membershipState.userId === (userId ?? null);
+  const membership = isCurrent ? membershipState.data : undefined;
+  const membershipError = isCurrent ? membershipState.error : null;
 
   const value = {
     session,
     user: session?.user ?? null,
     membership,
-    loading: session === undefined || (session && membership === undefined),
+    membershipError,
+    retryMembership: () => {
+      setMembershipState((s) => ({ ...s, error: null }));
+      loadMembership().catch((e) => setMembershipState({ userId: userId ?? null, data: undefined, error: friendlyError(e) }));
+    },
+    loading: session === undefined || (session && membership === undefined && !membershipError),
 
     signIn: (email, password) => supabase.auth.signInWithPassword({ email, password }),
     signUp: (email, password) => supabase.auth.signUp({ email, password }),

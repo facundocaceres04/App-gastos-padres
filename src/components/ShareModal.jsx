@@ -36,7 +36,7 @@ export default function ShareModal({ open, onClose, onCopy }) {
       <div className="space-y-3 text-[12px] text-slate-600">
         {partnerJoined ? (
           <p className="rounded-xl border border-sage-100 bg-sage-50 p-3 text-sage-700">
-            ✅ {other} ya está en la familia. Los dos ven y editan los mismos gastos en tiempo real.
+            {other} ya está en la familia. Los dos ven y editan los mismos gastos en tiempo real.
           </p>
         ) : (
           <p className="leading-relaxed">

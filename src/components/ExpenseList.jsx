@@ -39,8 +39,8 @@ export default function ExpenseList({ onEdit, onDelete, onAdd }) {
             <button
               key={t.id}
               onClick={() => setPayer(t.id)}
-              className={`truncate rounded-lg px-3 py-1 text-[11px] transition-all ${
-                payer === t.id ? 'bg-white font-semibold text-slate-900 shadow-xs' : 'font-medium text-slate-600 hover:text-slate-900'
+              className={`truncate rounded-lg px-3 py-1.5 text-[12px] transition-all ${
+                payer === t.id ? 'bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-300' : 'font-medium text-slate-600 hover:text-slate-900'
               }`}
             >
               {t.label}
@@ -53,7 +53,7 @@ export default function ExpenseList({ onEdit, onDelete, onAdd }) {
               setSearchOpen((v) => !v);
               if (searchOpen) setQuery('');
             }}
-            className={`rounded-xl p-1.5 transition ${searchOpen ? 'bg-slate-200 text-slate-800' : 'text-slate-500 hover:bg-slate-200/60'}`}
+            className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${searchOpen ? 'bg-slate-200 text-slate-800' : 'text-slate-500 hover:bg-slate-200/60'}`}
             aria-label="Buscar concepto"
           >
             {searchOpen ? <X size={16} /> : <Search size={16} />}
@@ -62,7 +62,7 @@ export default function ExpenseList({ onEdit, onDelete, onAdd }) {
             onClick={onAdd}
             className="flex items-center gap-1 rounded-xl bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-[0.98]"
           >
-            <Plus size={15} /> Añadir gasto
+            <Plus size={15} /> Agregar gasto
           </button>
         </div>
       </div>
@@ -87,11 +87,27 @@ export default function ExpenseList({ onEdit, onDelete, onAdd }) {
             <p className="mt-1 text-[13px] font-medium text-slate-500">
               {monthExpenses.length ? 'No hay gastos para este filtro' : 'Todavía no hay gastos este mes'}
             </p>
+            {monthExpenses.length ? (
+              <button
+                onClick={() => {
+                  setPayer('todos');
+                  setQuery('');
+                  setSearchOpen(false);
+                }}
+                className="mt-3 rounded-xl px-3 py-2 text-[13px] font-semibold text-brand-600 hover:bg-brand-50"
+              >
+                Ver todos
+              </button>
+            ) : (
+              <button onClick={onAdd} className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2.5 text-[13px] font-semibold text-white">
+                <Plus size={15} /> Agregar el primero
+              </button>
+            )}
           </div>
         ) : (
           groups.map((g) => (
             <div key={g.label} className="space-y-1.5">
-              <div className="px-1 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">{g.label}</div>
+              <div className="px-1 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">{g.label}</div>
               <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
                 {g.items.map((e) => {
                   const cat = getCategory(e.category);

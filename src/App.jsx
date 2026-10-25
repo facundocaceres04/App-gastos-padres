@@ -5,10 +5,11 @@ import { ExpensesProvider } from './context/ExpensesContext';
 import AuthScreen from './screens/AuthScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import Dashboard from './screens/Dashboard';
+import RetryScreen from './components/RetryScreen';
 
 /** Sesión → familia → panel. */
 function Gate() {
-  const { loading, user, membership } = useAuth();
+  const { loading, user, membership, membershipError, retryMembership } = useAuth();
 
   if (loading) {
     return (
@@ -18,6 +19,7 @@ function Gate() {
     );
   }
   if (!user) return <AuthScreen />;
+  if (membershipError) return <RetryScreen message={membershipError} onRetry={retryMembership} />;
   if (!membership) return <OnboardingScreen />;
 
   return (

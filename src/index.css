@@ -116,6 +116,17 @@ html.dark {
   input[type="range"] {
     accent-color: var(--color-brand-600);
   }
+  /* Foco visible al navegar con teclado (no al tocar). */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html.theme-transition,
+    html.theme-transition * {
+      transition: none !important;
+    }
+  }
 }
 
 @utility no-scrollbar {

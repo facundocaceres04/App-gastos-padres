@@ -10,7 +10,7 @@
  */
 
 /** Redondea a centavos para evitar errores de coma flotante. */
-const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+export const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 /** Suma de montos pagados por un progenitor. */
 export function sumPaidBy(expenses, payer) {
@@ -34,11 +34,14 @@ export function calculateSettlement(expenses, fatherPct = 50) {
   const paidMother = sumPaidBy(expenses, 'madre');
   const total = round2(paidFather + paidMother);
 
+  // La cuota de la madre se calcula por diferencia para que las dos siempre sumen el total
+  // (con redondeo independiente, $100,01 al 50% daba $50,01 + $50,01).
   const quotaFather = round2(total * (pctFather / 100));
-  const quotaMother = round2(total * (pctMother / 100));
+  const quotaMother = round2(total - quotaFather);
 
+  // Los balances son opuestos por definición: lo que uno puso de más, al otro le falta.
   const balanceFather = round2(paidFather - quotaFather);
-  const balanceMother = round2(paidMother - quotaMother);
+  const balanceMother = round2(-balanceFather);
 
   let debtor = null;
   let creditor = null;
@@ -63,7 +66,7 @@ export function calculateSettlement(expenses, fatherPct = 50) {
     debtor,
     creditor,
     amountToTransfer: Math.abs(balanceFather),
-    isBalanced: balanceFather === 0,
+    isBalanced: Math.abs(balanceFather) < 0.005,
   };
 }
 
