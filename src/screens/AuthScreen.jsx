@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { Eye, EyeOff, Loader2, Scale } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { friendlyError } from '../lib/supabase';
-import { inputCls, labelCls } from '../components/Modal';
+import { btnPrimary, FormError, inputCls, labelCls } from '../components/Modal';
 
 /** Pantalla de ingreso / registro con email y contraseña. */
 export default function AuthScreen() {
   const { signIn, signUp, resetPassword } = useAuth();
-  const [mode, setMode] = useState('login'); // 'login' | 'signup' | 'reset'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
@@ -19,6 +18,8 @@ export default function AuthScreen() {
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '')
     .slice(0, 6);
+  // Quien llega con un link de invitación casi siempre es nuevo: arranca en "Crear cuenta".
+  const [mode, setMode] = useState(inviteCode ? 'signup' : 'login'); // 'login' | 'signup' | 'reset'
 
   const switchMode = (m) => {
     setMode(m);
@@ -40,134 +41,111 @@ export default function AuthScreen() {
     }
     if (password.length < 6) return setError('La contraseña debe tener al menos 6 caracteres');
     setBusy(true);
-    const { data, error: err } = mode === 'login' ? await signIn(email.trim(), password) : await signUp(email.trim(), password);
+    let { data, error: err } = mode === 'login' ? await signIn(email.trim(), password) : await signUp(email.trim(), password);
+    // Si eligió "Crear cuenta" pero ya tenía una, se lo deja entrar con esos mismos datos.
+    if (mode === 'signup' && /already registered/i.test(err?.message ?? '')) {
+      ({ data, error: err } = await signIn(email.trim(), password));
+      if (err) err = new Error('User already registered');
+    }
     setBusy(false);
     if (err) return setError(friendlyError(err));
     // Si el proyecto exige confirmar email, signUp no devuelve sesión.
     if (mode === 'signup' && !data.session) setInfo('Te enviamos un email para confirmar tu cuenta. Después iniciá sesión.');
   };
 
+  const copy = {
+    login: ['Hola de nuevo.', 'Entrá para ver cómo vienen las cuentas del mes.'],
+    signup: ['Creá tu cuenta.', 'Cada uno tiene la suya; después se unen a la misma familia con un código.'],
+    reset: ['Recuperar contraseña', 'Te mandamos un link por email para elegir una nueva.'],
+  }[mode];
+
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-surface px-4 py-10">
+    <div className="flex min-h-dvh flex-col bg-surface px-6 pt-[calc(env(safe-area-inset-top)+2rem)] pb-10 sm:items-center sm:justify-center">
       <div className="w-full max-w-sm">
-        <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-lg">
-            <Scale size={22} />
-          </div>
-          <h1 className="font-display text-[22px] font-bold tracking-tight text-slate-900">Cuentas Claras</h1>
-          <p className="mt-1 text-[13px] text-slate-500">Gastos compartidos de los chicos, sin discusiones.</p>
+        <p className="font-display text-[19px] font-medium tracking-[-0.01em] text-slate-900">Cuentas Claras</p>
+
+        <div className="mt-14 sm:mt-10">
+          <h1 className="font-display text-[34px] leading-[1.1] font-medium tracking-[-0.02em] text-slate-900">{copy[0]}</h1>
+          <p className="mt-2 text-[16px] leading-relaxed text-slate-600">{copy[1]}</p>
         </div>
 
-        {inviteCode && (
-          <div className="mb-3 rounded-xl border border-sage-100 bg-sage-50 p-3 text-[12px] text-sage-700">
-            Te invitaron a una familia con el código <strong className="font-mono">{inviteCode}</strong>. Creá tu cuenta o iniciá sesión
-            para unirte.
-          </div>
+        {inviteCode && mode !== 'reset' && (
+          <p className="mt-6 border-l-2 border-brand-600 pl-3 text-[14px] leading-relaxed text-slate-700">
+            Te invitaron con el código <strong className="font-semibold tracking-wider text-slate-900">{inviteCode}</strong>. Creá tu cuenta (o
+            ingresá) y quedan unidos.
+          </p>
         )}
 
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          {mode === 'reset' ? (
-            <div className="mb-4">
-              <h2 className="text-[14px] font-semibold text-slate-900">Recuperar contraseña</h2>
-              <p className="mt-0.5 text-[12px] text-slate-500">Te mandamos un link por email para elegir una nueva.</p>
-            </div>
-          ) : (
-            <div className="mb-4 grid grid-cols-2 rounded-xl bg-slate-200/60 p-0.5">
-              {[
-                ['login', 'Ingresar'],
-                ['signup', 'Crear cuenta'],
-              ].map(([id, label]) => (
+        <form onSubmit={submit} className="mt-8 space-y-4">
+          <div>
+            <label className={labelCls} htmlFor="email">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="vos@email.com"
+              className={inputCls}
+            />
+          </div>
+          {mode !== 'reset' && (
+            <div>
+              <div className="flex items-baseline justify-between">
+                <label className={labelCls} htmlFor="password">
+                  Contraseña
+                </label>
+                {mode === 'login' && (
+                  <button type="button" onClick={() => switchMode('reset')} className="text-[13px] text-slate-500 underline underline-offset-[3px] hover:text-slate-900">
+                    ¿La olvidaste?
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPwd ? 'text' : 'password'}
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : ''}
+                  className={`${inputCls} pr-11`}
+                />
                 <button
-                  key={id}
                   type="button"
-                  onClick={() => switchMode(id)}
-                  className={`rounded-lg py-1.5 text-[12px] transition-all ${
-                    mode === id ? 'bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-300' : 'font-medium text-slate-600'
-                  }`}
+                  onClick={() => setShowPwd((v) => !v)}
+                  className="absolute top-1/2 right-1 flex h-10 w-10 -translate-y-1/2 items-center justify-center text-slate-500 hover:text-slate-800"
+                  aria-label={showPwd ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 >
-                  {label}
+                  {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
-              ))}
+              </div>
             </div>
           )}
 
-          <form onSubmit={submit} className="space-y-3.5">
-            <div>
-              <label className={labelCls} htmlFor="email">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="vos@email.com"
-                className={inputCls}
-              />
-            </div>
-            {mode !== 'reset' && (
-              <div>
-                <div className="flex items-baseline justify-between">
-                  <label className={labelCls} htmlFor="password">
-                    Contraseña
-                  </label>
-                  {mode === 'login' && (
-                    <button
-                      type="button"
-                      onClick={() => switchMode('reset')}
-                      className="text-[11px] font-medium text-brand-600 hover:underline"
-                    >
-                      ¿La olvidaste?
-                    </button>
-                  )}
-                </div>
-                <div className="relative">
-                  <input
-                    id="password"
-                    type={showPwd ? 'text' : 'password'}
-                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : '••••••'}
-                    className={`${inputCls} pr-10`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPwd((v) => !v)}
-                    className="absolute top-1/2 right-2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
-                    aria-label={showPwd ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                  >
-                    {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-            )}
+          <FormError>{error}</FormError>
+          {info && <p className="border-l-2 border-sage-500 pl-3 text-[14px] leading-relaxed text-slate-700">{info}</p>}
 
-            {error && <p className="rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-800">{error}</p>}
-            {info && <p className="rounded-lg bg-sage-50 px-3 py-2 text-[12px] text-sage-700">{info}</p>}
+          <button type="submit" disabled={busy} className={`${btnPrimary} w-full`}>
+            {busy && <Loader2 size={16} className="animate-spin" />}
+            {mode === 'login' ? 'Ingresar' : mode === 'signup' ? 'Crear cuenta' : 'Mandarme el link'}
+          </button>
+        </form>
 
-            <button
-              type="submit"
-              disabled={busy}
-              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-2.5 text-[13px] font-semibold text-white shadow-xs transition hover:bg-slate-800 active:scale-[0.98] disabled:opacity-60"
-            >
-              {busy && <Loader2 size={15} className="animate-spin" />}
-              {mode === 'login' ? 'Ingresar' : mode === 'signup' ? 'Crear cuenta' : 'Mandarme el link'}
-            </button>
-            {mode === 'reset' && (
-              <button
-                type="button"
-                onClick={() => switchMode('login')}
-                className="w-full text-center text-[12px] font-medium text-slate-500 hover:text-slate-800"
-              >
-                Volver a ingresar
-              </button>
-            )}
-          </form>
-        </div>
+        <p className="mt-6 text-[15px] text-slate-600">
+          {mode === 'login' ? '¿Primera vez? ' : mode === 'signup' ? '¿Ya tenés cuenta? ' : ''}
+          <button
+            type="button"
+            onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
+            className="font-semibold text-slate-900 underline decoration-slate-300 underline-offset-[3px] hover:decoration-slate-900"
+          >
+            {mode === 'login' ? 'Creá tu cuenta' : mode === 'signup' ? 'Ingresá' : 'Volver a ingresar'}
+          </button>
+        </p>
       </div>
     </div>
   );

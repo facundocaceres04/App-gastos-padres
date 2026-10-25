@@ -1,24 +1,44 @@
 @import "tailwindcss";
 
-/* Tokens del design system "Serene Balance" (Stitch) */
+/*
+ * "La libreta": papel cálido, tinta y una serif para los montos.
+ * La escala slate se redefine con grises cálidos, así todos los componentes toman la paleta.
+ */
 @theme {
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-display: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-sans: "Hanken Grotesk", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
 
-  --color-brand-50: #f0f7f9;
-  --color-brand-100: #dbeef3;
-  --color-brand-600: #245361;
-  --color-brand-700: #1c434f;
-  --color-brand-800: #15343e;
-  --color-brand-900: #0e242c;
+  --color-surface: #f6f3ed;
+  --color-white: #fffdf9;
 
-  --color-sage-50: #f2f7f5;
-  --color-sage-100: #e1ede8;
-  --color-sage-500: #45655a;
-  --color-sage-600: #375249;
-  --color-sage-700: #2b4039;
+  --color-slate-50: #f1ede6;
+  --color-slate-100: #eae5dc;
+  --color-slate-200: #ddd6ca;
+  --color-slate-300: #c7bfb1;
+  --color-slate-400: #9d9487;
+  --color-slate-500: #70685c;
+  --color-slate-600: #575047;
+  --color-slate-700: #423c35;
+  --color-slate-800: #2b2722;
+  --color-slate-900: #1a1714;
+  --color-slate-950: #0f0d0b;
 
-  --color-surface: #f8fafc;
+  /* Verde botella: links, foco y "a revisar". */
+  --color-brand-50: #eef3ef;
+  --color-brand-100: #dce6de;
+  --color-brand-600: #2e5e4e;
+  --color-brand-700: #244a3d;
+  --color-brand-800: #1b3a30;
+  --color-brand-900: #12271f;
+
+  --color-sage-50: #eff4ef;
+  --color-sage-100: #dfe9e0;
+  --color-sage-500: #4d6b57;
+  --color-sage-600: #3d5746;
+  --color-sage-700: #2f4537;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* `static`: se emiten siempre, porque los gráficos los usan vía var() desde JS. */
@@ -46,29 +66,30 @@
 html.dark {
   color-scheme: dark;
 
-  --color-surface: #0b1220;
-  --color-white: #131c2b;
+  --color-surface: #15130f;
+  --color-white: #1e1b17;
 
-  --color-slate-50: #182234;
-  --color-slate-100: #1e293b;
-  --color-slate-200: #2a3648;
-  --color-slate-300: #3b4a5f;
-  --color-slate-400: #7c8aa0;
-  --color-slate-500: #94a3b8;
-  --color-slate-600: #b4c0d0;
-  --color-slate-700: #cbd5e1;
-  --color-slate-800: #e2e8f0;
-  --color-slate-900: #f1f5f9;
+  --color-slate-50: #24211c;
+  --color-slate-100: #2a2621;
+  --color-slate-200: #36312b;
+  --color-slate-300: #4a443c;
+  --color-slate-400: #8a8276;
+  --color-slate-500: #a39b8e;
+  --color-slate-600: #beb6a9;
+  --color-slate-700: #d3ccc0;
+  --color-slate-800: #e7e1d6;
+  --color-slate-900: #f4efe6;
+  --color-slate-950: #faf7f1;
 
-  --color-brand-50: #10262d;
-  --color-brand-100: #173640;
-  --color-brand-600: #7cc4d8;
-  --color-brand-700: #a5d8e6;
+  --color-brand-50: #17241e;
+  --color-brand-100: #1f3229;
+  --color-brand-600: #8fc2a8;
+  --color-brand-700: #b3d8c4;
 
-  --color-sage-50: #13241e;
-  --color-sage-100: #1a3029;
-  --color-sage-500: #7fb3a0;
-  --color-sage-700: #a9d0c1;
+  --color-sage-50: #18241c;
+  --color-sage-100: #20302a;
+  --color-sage-500: #8db59b;
+  --color-sage-700: #b5d3bf;
 
   --color-emerald-50: #0f2a22;
   --color-emerald-100: #14392d;
@@ -126,7 +147,11 @@ html.dark {
   }
   body {
     @apply bg-surface text-slate-800 selection:bg-slate-200;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  /* Montos: cifras alineadas y del mismo ancho, para que las columnas se lean de un vistazo. */
+  .font-display,
+  .tabular-nums {
+    font-variant-numeric: lining-nums tabular-nums;
   }
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {
@@ -165,15 +190,32 @@ html.dark {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-fade-in { animation: fade-in 160ms ease-out; }
+.animate-fade-in { animation: fade-in 200ms ease-out; }
+/* Hoja: sube desde abajo en mobile; en pantallas grandes, aparece centrada. */
+.animate-sheet-up { animation: sheet-up 320ms var(--ease-drawer); }
+@media (min-width: 640px) {
+  .animate-sheet-up { animation: dialog-in 200ms var(--ease-out); }
+}
+/* Respuesta al tocar: el botón se hunde apenas. */
+.press { transition-property: transform, background-color, color, opacity; transition-duration: 140ms; transition-timing-function: ease-out; }
+.press:active:not(:disabled) { transform: scale(0.97); }
 .animate-slide-up { animation: slide-up 220ms cubic-bezier(0.16, 1, 0.3, 1); }
 .animate-toast-in { animation: toast-in 200ms cubic-bezier(0.16, 1, 0.3, 1); }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in, .animate-slide-up, .animate-toast-in { animation: none; }
+  .animate-fade-in, .animate-slide-up, .animate-toast-in, .animate-sheet-up { animation: none; }
+  .press:active:not(:disabled) { transform: none; }
 }

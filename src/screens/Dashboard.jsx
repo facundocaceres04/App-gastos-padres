@@ -1,10 +1,8 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
-import { AlertCircle, Bell, ChartPie, CheckCircle2, CloudOff, Loader2, Lock, LockOpen, Percent, Settings, UserPlus, Wallet, X } from 'lucide-react';
+import { AlertCircle, Bell, CheckCircle2, CloudOff, Loader2, UserPlus, X } from 'lucide-react';
 import { useExpenses } from '../context/ExpensesContext';
 import Header from '../components/Header';
 import HeroCard from '../components/HeroCard';
-import MetricCards from '../components/MetricCards';
-import WhatsAppStrip from '../components/WhatsAppStrip';
 import ExpenseList from '../components/ExpenseList';
 import BottomNav from '../components/BottomNav';
 import ExpenseFormModal from '../components/ExpenseFormModal';
@@ -183,33 +181,32 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-dvh bg-surface">
-      <Header onAdd={openNew} onChangeSplit={() => setModal('split')} onActivity={() => setModal('activity')} unread={unread} />
+      <Header onAdd={openNew} onActivity={() => setModal('activity')} onSettings={() => setModal('settings')} unread={unread} />
       {!online && (
-        <div role="status" className="flex items-center justify-center gap-2 bg-amber-50 px-4 py-2 text-[12px] text-amber-800">
-          <CloudOff size={14} /> Sin conexión. Los cambios no se van a guardar hasta que vuelvas a tener internet.
+        <div role="status" className="flex items-center justify-center gap-2 bg-amber-50 px-4 py-2 text-[13px] text-amber-800">
+          <CloudOff size={14} /> Sin conexión: lo que cargues no se guarda hasta que vuelva internet.
         </div>
       )}
 
       <main className="mx-auto max-w-[440px] px-4 pt-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:max-w-xl lg:max-w-5xl lg:px-8 lg:pt-5 lg:pb-12">
         {/* Pestañas de escritorio (en mobile se usa la barra inferior) */}
-        <div className="mb-5 hidden lg:flex">
-          <div className="flex rounded-xl bg-slate-200/60 p-0.5">
-            {[
-              ['balance', 'Balance', Wallet],
-              ['analisis', 'Análisis', ChartPie],
-            ].map(([id, text, Icon]) => (
-              <button
-                key={id}
-                onClick={() => goTo(null, id)}
-                aria-current={view === id ? 'page' : undefined}
-                className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[12px] transition-all ${
-                  view === id ? 'bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-300' : 'font-medium text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Icon size={14} /> {text}
-              </button>
-            ))}
-          </div>
+        <div className="mb-6 hidden gap-6 border-b border-slate-200 lg:flex" role="tablist" aria-label="Secciones">
+          {[
+            ['balance', 'Balance'],
+            ['analisis', 'Análisis'],
+          ].map(([id, text]) => (
+            <button
+              key={id}
+              role="tab"
+              onClick={() => goTo(null, id)}
+              aria-selected={view === id}
+              className={`-mb-px border-b-2 pb-2.5 text-[15px] transition-colors ${
+                view === id ? 'border-slate-900 font-semibold text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              {text}
+            </button>
+          ))}
         </div>
 
         {view === 'analisis' ? (
@@ -223,48 +220,33 @@ export default function Dashboard() {
             <AnalysisView />
           </Suspense>
         ) : (
-          <div className="lg:grid lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-start lg:gap-6">
-            <div className="space-y-3.5 lg:sticky lg:top-32">
+          <div className="lg:grid lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-start lg:gap-10">
+            <div className="space-y-4 lg:sticky lg:top-28">
               {partnerJoined && <InstallHint onInstalled={setToast} />}
               {!partnerJoined && (
                 <button
                   onClick={() => setModal('share')}
-                  className="flex w-full items-center gap-3 rounded-2xl border border-brand-100 bg-brand-50 p-3 text-left transition hover:border-brand-600"
+                  className="press flex w-full items-center justify-between gap-3 rounded-[16px] bg-brand-600 px-4 py-3.5 text-left text-white"
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-brand-600 shadow-xs">
-                    <UserPlus size={17} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-semibold text-slate-900">Invitá a {profiles[otherRole].name}</p>
-                    <p className="text-[11px] text-slate-600">Compartile el código para ver los gastos juntos.</p>
-                  </div>
+                  <span className="min-w-0">
+                    <span className="block text-[15px] font-semibold">Falta {profiles[otherRole].name}</span>
+                    <span className="block text-[13px] opacity-80">Pasale el código para que vean los mismos gastos.</span>
+                  </span>
+                  <UserPlus size={20} className="shrink-0" />
                 </button>
               )}
-              <HeroCard onShowBreakdown={() => setModal('breakdown')} onShowBank={() => setModal('bank')} onAskSettle={askSettle} />
-              <MetricCards />
-              <WhatsAppStrip
-                onCopy={() => copyText(summary(), 'Copiado para enviar por WhatsApp')}
-                onPreview={() => setModal('whatsapp')}
+              <HeroCard
+                onShowBreakdown={() => setModal('breakdown')}
+                onShowBank={() => setModal('bank')}
+                onAskSettle={askSettle}
+                onChangeSplit={() => setModal('split')}
+                onCopySummary={() => copyText(summary(), 'Resumen copiado. Pegalo en WhatsApp.')}
+                onPreviewSummary={() => setModal('whatsapp')}
               />
-              {/* Accesos que en mobile viven en la barra inferior */}
-              <div className="hidden gap-2 lg:flex">
-                <button onClick={() => setModal('split')} className={btnSecondary}>
-                  <Percent size={14} /> Acuerdo
-                </button>
-                <button onClick={() => setModal('share')} className={btnSecondary}>
-                  <UserPlus size={14} /> Compartir
-                </button>
-                <button onClick={() => setModal('settings')} className={btnSecondary}>
-                  <Settings size={14} /> Ajustes
-                </button>
-              </div>
             </div>
 
-            <div className="mt-3.5 lg:mt-0">
+            <div className="mt-8 lg:mt-0">
               <ExpenseList onEdit={openEdit} onDelete={askDelete} onAdd={openNew} onReopen={askSettle} />
-              <p className="pt-6 text-center text-[12px] text-slate-500">
-                {online ? 'Cuentas Claras · Los cambios se ven al instante en los dos teléfonos.' : 'Cuentas Claras · Sin conexión'}
-              </p>
             </div>
           </div>
         )}
@@ -305,8 +287,7 @@ export default function Dashboard() {
       <Modal
         open={modal === 'settle'}
         onClose={close}
-        title={config.settled ? `¿Reabrir ${label}?` : `¿Marcar ${label} como saldado?`}
-        icon={config.settled ? LockOpen : Lock}
+        title={config.settled ? `¿Reabrir ${label.split(' ')[0].toLowerCase()}?` : `¿${label.split(' ')[0]} ya está saldado?`}
         footer={
           <>
             <button onClick={close} className={btnSecondary}>Cancelar</button>
@@ -317,9 +298,9 @@ export default function Dashboard() {
           </>
         }
       >
-        <div className="space-y-2 pb-1 text-[13px] leading-relaxed text-slate-600">
+        <div className="space-y-3 pb-1 text-[15px] leading-relaxed text-slate-600">
           {config.settled ? (
-            <p>Se van a poder volver a editar los gastos y el acuerdo de {label.split(' ')[0].toLowerCase()}. Queda registrado en la actividad.</p>
+            <p>Se van a poder volver a editar los gastos y el reparto de {label.split(' ')[0].toLowerCase()}. Queda registrado en la actividad.</p>
           ) : (
             <>
               {!settlement.isBalanced && settlement.debtor && (
@@ -329,12 +310,12 @@ export default function Dashboard() {
                 </p>
               )}
               {observed.length > 0 && (
-                <p className="rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
+                <p className="border-l-2 border-amber-500 pl-3 text-[14px] text-amber-800">
                   Hay {observed.length === 1 ? '1 gasto observado' : `${observed.length} gastos observados`} sin resolver: al saldar, quedan afuera de
                   este mes.
                 </p>
               )}
-              <p>Los gastos y el acuerdo del mes quedan bloqueados para los dos. Si hace falta corregir algo, se puede reabrir.</p>
+              <p>Los gastos y el reparto del mes quedan bloqueados para los dos. Si hace falta corregir algo, se puede reabrir.</p>
             </>
           )}
           <FormError>{settleError}</FormError>
@@ -342,17 +323,22 @@ export default function Dashboard() {
       </Modal>
 
       {(error || toast) && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-[60] flex justify-center px-4 lg:bottom-8">
+        // Con una hoja abierta (que sube desde abajo), el aviso va arriba para no tapar sus botones.
+        <div
+          className={`pointer-events-none fixed inset-x-0 z-[60] flex justify-center px-4 ${
+            modal ? 'top-[calc(env(safe-area-inset-top)+0.75rem)]' : 'bottom-[calc(6rem+env(safe-area-inset-bottom))] lg:bottom-8'
+          }`}
+        >
           <div
             role={error ? 'alert' : 'status'}
-            className="animate-toast-in pointer-events-auto flex max-w-md items-start gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-[13px] font-medium text-white shadow-lg"
+            className="animate-toast-in pointer-events-auto flex max-w-md items-start gap-2.5 rounded-[14px] bg-slate-900 py-3 pr-4 pl-3.5 text-[14px] text-white shadow-[0_10px_30px_-10px_rgba(26,23,20,0.5)]"
           >
             {error ? (
-              <AlertCircle size={16} className="mt-0.5 shrink-0 text-amber-400" />
+              <AlertCircle size={17} className="mt-px shrink-0 text-amber-400 dark:text-amber-700" />
             ) : toast.icon === 'bell' ? (
-              <Bell size={16} className="mt-0.5 shrink-0 text-sky-300 dark:text-sky-700" />
+              <Bell size={17} className="mt-px shrink-0 opacity-70" />
             ) : (
-              <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-400" />
+              <CheckCircle2 size={17} className="mt-px shrink-0 opacity-70" />
             )}
             <span>{error ?? toast.text}</span>
             {!error && toast.action && (
@@ -360,7 +346,7 @@ export default function Dashboard() {
                 onClick={() => {
                   toast.action.onClick();
                 }}
-                className="-my-1 ml-1 shrink-0 rounded-lg px-2 py-1 font-semibold text-emerald-300 hover:bg-white/10 dark:text-emerald-700"
+                className="-my-1 ml-1 shrink-0 rounded-lg px-2 py-1 font-semibold underline underline-offset-[3px] hover:bg-white/10"
               >
                 {toast.action.label}
               </button>

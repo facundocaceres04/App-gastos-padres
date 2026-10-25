@@ -25,7 +25,7 @@ export function applyTheme(pref = getThemePref(), animate = false) {
   const dark = isDark(pref);
   root.classList.toggle('dark', dark);
   window.dispatchEvent(new CustomEvent('cc-theme', { detail: { dark } }));
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0b1220' : '#F8FAFC');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#15130F' : '#F6F3ED');
 }
 
 export function setThemePref(pref) {

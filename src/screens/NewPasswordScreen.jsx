@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Eye, EyeOff, KeyRound, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { friendlyError } from '../lib/supabase';
-import { inputCls, labelCls } from '../components/Modal';
+import { btnPrimary, FormError, inputCls, labelCls } from '../components/Modal';
 
 /** Se muestra al entrar desde el link de "olvidé mi contraseña". */
 export default function NewPasswordScreen() {
@@ -26,17 +26,15 @@ export default function NewPasswordScreen() {
   };
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-surface px-4 py-10">
+    <div className="flex min-h-dvh flex-col bg-surface px-6 pt-[calc(env(safe-area-inset-top)+2rem)] pb-10 sm:items-center sm:justify-center">
       <div className="w-full max-w-sm">
-        <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-lg">
-            <KeyRound size={22} />
-          </div>
-          <h1 className="font-display text-[20px] font-bold tracking-tight text-slate-900">Elegí una contraseña nueva</h1>
-          <p className="mt-1 text-[13px] text-slate-500">Para {user?.email}</p>
+        <p className="font-display text-[19px] font-medium tracking-[-0.01em] text-slate-900">Cuentas Claras</p>
+        <div className="mt-14 sm:mt-10">
+          <h1 className="font-display text-[34px] leading-[1.1] font-medium tracking-[-0.02em] text-slate-900">Elegí una contraseña nueva</h1>
+          <p className="mt-2 text-[16px] text-slate-600">Para {user?.email}</p>
         </div>
 
-        <form onSubmit={submit} className="space-y-3.5 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <form onSubmit={submit} className="mt-8 space-y-4">
           <div>
             <label className={labelCls} htmlFor="new-password">Contraseña nueva</label>
             <div className="relative">
@@ -48,15 +46,15 @@ export default function NewPasswordScreen() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
-                className={`${inputCls} pr-10`}
+                className={`${inputCls} pr-11`}
               />
               <button
                 type="button"
                 onClick={() => setShowPwd((v) => !v)}
-                className="absolute top-1/2 right-2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                className="absolute top-1/2 right-1 flex h-10 w-10 -translate-y-1/2 items-center justify-center text-slate-500 hover:text-slate-800"
                 aria-label={showPwd ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               >
-                {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
@@ -73,21 +71,17 @@ export default function NewPasswordScreen() {
             />
           </div>
 
-          {error && <p className="rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-800">{error}</p>}
+          <FormError>{error}</FormError>
 
-          <button
-            type="submit"
-            disabled={busy}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-2.5 text-[13px] font-semibold text-white shadow-xs transition hover:bg-slate-800 active:scale-[0.98] disabled:opacity-60"
-          >
-            {busy && <Loader2 size={15} className="animate-spin" />}
+          <button type="submit" disabled={busy} className={`${btnPrimary} w-full`}>
+            {busy && <Loader2 size={16} className="animate-spin" />}
             Guardar contraseña
           </button>
         </form>
 
-        <p className="mt-4 text-center text-[12px] text-slate-500">
-          <button onClick={signOut} className="font-medium hover:text-slate-800">Cancelar y salir</button>
-        </p>
+        <button onClick={signOut} className="mt-6 text-[15px] text-slate-600 underline underline-offset-[3px] hover:text-slate-900">
+          Cancelar y salir
+        </button>
       </div>
     </div>
   );

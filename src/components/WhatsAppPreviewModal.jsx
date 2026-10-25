@@ -1,33 +1,49 @@
-import { Copy, MessageCircle } from 'lucide-react';
 import Modal, { btnSecondary } from './Modal';
 
-/** Vista previa del resumen con opción de copiar o abrir WhatsApp directamente. */
+/** Vista previa del resumen tal como se va a ver en el chat, con copiar o abrir WhatsApp. */
 export default function WhatsAppPreviewModal({ open, onClose, text, onCopy }) {
+  // El resumen usa *negrita* y _cursiva_ de WhatsApp: acá se muestra igual que en el chat.
+  const render = (line) =>
+    line.split(/(\*[^*]+\*|_[^_]+_)/g).map((part, i) =>
+      part.startsWith('*') && part.endsWith('*') && part.length > 2 ? (
+        <strong key={i}>{part.slice(1, -1)}</strong>
+      ) : part.startsWith('_') && part.endsWith('_') && part.length > 2 ? (
+        <em key={i}>{part.slice(1, -1)}</em>
+      ) : (
+        part
+      ),
+    );
+
   return (
     <Modal
       open={open}
       onClose={onClose}
       title="Resumen para WhatsApp"
-      icon={MessageCircle}
       footer={
         <>
           <button onClick={onCopy} className={btnSecondary}>
-            <Copy size={14} /> Copiar
+            Copiar
           </button>
           <a
             href={`https://wa.me/?text=${encodeURIComponent(text)}`}
             target="_blank"
             rel="noreferrer"
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-[12px] font-semibold text-white shadow-xs transition hover:bg-emerald-700"
+            className="press flex h-12 flex-1 items-center justify-center rounded-[12px] bg-[#1f8a4c] text-[15px] font-semibold text-white hover:bg-[#19753f]"
           >
-            <MessageCircle size={14} /> Abrir WhatsApp
+            Abrir WhatsApp
           </a>
         </>
       }
     >
-      <pre className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-3 font-sans text-[12px] leading-relaxed whitespace-pre-wrap text-slate-700">
-        {text}
-      </pre>
+      <div className="-mx-5 bg-[#efe7dd] px-4 py-4 dark:bg-[#0b141a]">
+        <div data-resumen className="ml-auto max-w-[92%] rounded-[10px] rounded-tr-[3px] bg-[#d9fdd3] px-3 py-2 text-[14px] leading-[1.45] text-[#111b21] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] dark:bg-[#005c4b] dark:text-[#e9edef]">
+          {text.split('\n').map((line, i) => (
+            <p key={i} className="min-h-[0.9em] break-words">
+              {render(line)}
+            </p>
+          ))}
+        </div>
+      </div>
     </Modal>
   );
 }

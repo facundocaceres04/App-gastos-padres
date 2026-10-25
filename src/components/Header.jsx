@@ -1,120 +1,68 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, History, Lock, Moon, Plus, Sun } from 'lucide-react';
+import { ChevronLeft, ChevronRight, History, Moon, Plus, Settings, Sun } from 'lucide-react';
 import { useExpenses } from '../context/ExpensesContext';
-import { initial } from '../utils/formatters';
 import { setThemePref } from '../utils/theme';
 
-/**
- * App bar: familia, selector de mes, actividad y el acuerdo del mes.
- * El acuerdo se muestra de solo lectura: cambiarlo afecta a los dos, así que pasa por un modal con confirmación.
- */
-export default function Header({ onAdd, onChangeSplit, onActivity, unread }) {
-  const { profiles, childrenList, label, shiftMonth, config } = useExpenses();
-  const pct = config.fatherPct;
+/** Une nombres como se dice: "Mateo", "Mateo y Sofía", "Mateo, Sofía y Juan". */
+const joinNames = (names) => (names.length < 2 ? names[0] ?? '' : `${names.slice(0, -1).join(', ')} y ${names.at(-1)}`);
+
+/** Encabezado: el mes que se está mirando es el título; a la derecha, la actividad. */
+export default function Header({ onAdd, onActivity, onSettings, unread }) {
+  const { childrenList, current, shiftMonth, label } = useExpenses();
+  const [month, year] = label.split(' ');
+  const isThisYear = current.year === new Date().getFullYear();
   const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
   useEffect(() => {
     const onTheme = (e) => setDark(e.detail.dark);
     window.addEventListener('cc-theme', onTheme);
     return () => window.removeEventListener('cc-theme', onTheme);
   }, []);
-  const toggleTheme = () => setThemePref(dark ? 'claro' : 'oscuro');
 
-  const iconBtn =
-    'relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-xs transition hover:text-slate-900';
+  const ghost = 'press relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 hover:text-slate-900';
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-surface/90 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-2.5 backdrop-blur-md lg:px-8">
-      <div className="mx-auto max-w-5xl">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <div className="hidden shrink-0 -space-x-1.5 p-0.5 min-[360px]:flex">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-padre text-[11px] font-semibold text-white ring-2 ring-white">
-                {initial(profiles.padre.name)}
-              </div>
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-madre text-[11px] font-semibold text-white ring-2 ring-white">
-                {initial(profiles.madre.name)}
-              </div>
-            </div>
-            <div className="min-w-0">
-              <h1 className="font-display text-[15px] leading-none font-semibold tracking-tight truncate text-slate-900">Cuentas Claras</h1>
-              <p className="mt-0.5 truncate text-[12px] text-slate-500">{childrenList.join(' & ') || 'Coparentalidad'}</p>
-            </div>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-1.5">
-            <div className="inline-flex items-center rounded-full border border-slate-200 bg-white text-[12px] font-medium text-slate-700 shadow-xs">
-              <button
-                onClick={() => shiftMonth(-1)}
-                className="flex h-9 w-8 items-center justify-center rounded-l-full text-slate-500 hover:text-slate-800"
-                aria-label="Mes anterior"
-              >
-                <ChevronLeft size={15} />
-              </button>
-              <span className="flex items-center gap-1 whitespace-nowrap">
-                <CalendarDays size={13} className="hidden text-slate-500 min-[440px]:block" />
-                {/* En pantallas angostas, mes abreviado para que el título no se parta en dos líneas */}
-                <span className="min-[420px]:hidden">{`${label.slice(0, 3)} ${label.split(' ')[1]}`}</span>
-                <span className="hidden min-[420px]:inline">{label}</span>
-              </span>
-              <button
-                onClick={() => shiftMonth(1)}
-                className="flex h-9 w-8 items-center justify-center rounded-r-full text-slate-500 hover:text-slate-800"
-                aria-label="Mes siguiente"
-              >
-                <ChevronRight size={15} />
-              </button>
-            </div>
-            <button onClick={onActivity} className={iconBtn} aria-label={unread ? 'Actividad (hay novedades)' : 'Actividad'} title="Actividad">
-              <History size={16} />
-              {unread && <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-brand-600 ring-2 ring-white" />}
+    <header className="sticky top-0 z-30 bg-surface/92 px-4 pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2 backdrop-blur-md lg:px-8">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-[13px] text-slate-500">{joinNames(childrenList) || 'Cuentas Claras'}</p>
+          <div className="-ml-2 flex items-center">
+            <button onClick={() => shiftMonth(-1)} className={`${ghost} h-9 w-8`} aria-label="Mes anterior">
+              <ChevronLeft size={18} />
             </button>
-            <button
-              onClick={toggleTheme}
-              className={`${iconBtn} hidden lg:flex`}
-              aria-label={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-              title={dark ? 'Modo claro' : 'Modo oscuro'}
-            >
-              {dark ? <Sun size={15} /> : <Moon size={15} />}
-            </button>
-            <button
-              onClick={onAdd}
-              className="hidden h-9 items-center gap-1 rounded-xl bg-slate-900 px-3 text-[13px] font-semibold text-white shadow-xs transition hover:bg-slate-800 active:scale-[0.98] lg:flex"
-            >
-              <Plus size={15} /> Agregar gasto
+            <h1 className="font-display min-w-0 truncate px-0.5 text-[26px] leading-none font-medium tracking-[-0.02em] text-slate-900">
+              {month}
+              {!isThisYear && <span className="ml-1.5 text-slate-400">{year}</span>}
+            </h1>
+            <button onClick={() => shiftMonth(1)} className={`${ghost} h-9 w-8`} aria-label="Mes siguiente">
+              <ChevronRight size={18} />
             </button>
           </div>
         </div>
 
-        <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl bg-slate-200/60 py-1 pr-1 pl-3">
-          <p className="min-w-0 truncate text-[12px] text-slate-600">
-            <span className="font-semibold tracking-wider text-slate-500 uppercase">Acuerdo</span>
-            <span className="mx-1.5 text-slate-400">·</span>
-            <span className="font-semibold text-slate-900 tabular-nums">
-              {profiles.padre.name} {pct}% / {profiles.madre.name} {100 - pct}%
-            </span>
-          </p>
+        <div className="flex shrink-0 items-center gap-1">
+          <button onClick={onActivity} className={ghost} aria-label={unread ? 'Actividad (hay novedades)' : 'Actividad'} title="Actividad">
+            <History size={19} />
+            {unread && <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-brand-600 ring-2 ring-surface" />}
+          </button>
           <button
-            onClick={onChangeSplit}
-            className="flex h-8 shrink-0 items-center gap-1 rounded-lg bg-white px-3 text-[12px] font-semibold text-slate-700 shadow-xs transition hover:text-slate-900 dark:bg-slate-300"
+            onClick={() => setThemePref(dark ? 'claro' : 'oscuro')}
+            className={`${ghost} hidden lg:flex`}
+            aria-label={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+            title={dark ? 'Modo claro' : 'Modo oscuro'}
           >
-            {config.settled && <Lock size={12} />}
-            {config.settled ? 'Ver' : 'Cambiar'}
+            {dark ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          <button onClick={onSettings} className={`${ghost} hidden lg:flex`} aria-label="Ajustes" title="Ajustes">
+            <Settings size={18} />
+          </button>
+          <button
+            onClick={onAdd}
+            className="press ml-2 hidden h-10 items-center gap-1.5 rounded-[12px] bg-slate-900 pr-4 pl-3 text-[14px] font-semibold text-white hover:bg-slate-800 lg:flex"
+          >
+            <Plus size={17} /> Agregar gasto
           </button>
         </div>
       </div>
     </header>
-  );
-}
-
-export function StatusBadge({ settled, by, at }) {
-  return settled ? (
-    <span className="inline-flex items-center gap-1 rounded-full bg-sage-50 px-2 py-0.5 text-[11px] font-semibold text-sage-700 ring-1 ring-sage-100">
-      <CheckCircle2 size={12} /> Saldado{by ? ` · ${by}` : ''}
-      {at ? `, ${at.slice(8, 10)}/${at.slice(5, 7)}` : ''}
-    </span>
-  ) : (
-    <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-600 ring-1 ring-brand-100">
-      <span className="h-1.5 w-1.5 rounded-full bg-brand-600" /> En curso
-    </span>
   );
 }

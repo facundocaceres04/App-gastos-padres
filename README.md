@@ -37,6 +37,11 @@ Incluye:
 - **Pensada para el celular**: campos de 16px (el iPhone no hace zoom), respeta el notch y la barra de
   inicio, el teclado no tapa el botón de guardar en Android, y el código se baja por partes.
 
+Diseño: "la libreta". Papel cálido y tinta, Fraunces para títulos y montos y Hanken Grotesk para el
+resto; la escala `slate` de Tailwind está redefinida con grises cálidos en `src/index.css`, así que
+cambiar la paleta es tocar solo esos tokens. Pocas cajas: el balance es una frase con el monto grande y
+los gastos se leen como un registro, con el día a la izquierda.
+
 Ideas de análisis y modo oscuro tomadas de [Hormigah](https://github.com/Jaolmos/hormigah-expense-tracker).
 
 ## Desarrollo

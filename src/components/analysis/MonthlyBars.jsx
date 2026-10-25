@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { Table2, BarChart3 } from 'lucide-react';
 import ChartCard, { Tooltip, TooltipRow } from './ChartCard';
 import { formatMoney } from '../../utils/formatters';
 import { compactMoney, niceTicks } from '../../utils/analytics';
@@ -29,16 +28,16 @@ export default function MonthlyBars({ series, profiles, selectedKey }) {
     <button
       type="button"
       onClick={() => setAsTable((v) => !v)}
-      className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+      className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[13px] text-slate-500 underline underline-offset-[3px] transition-colors hover:text-slate-900"
     >
-      {asTable ? <BarChart3 size={13} /> : <Table2 size={13} />}
+      
       {asTable ? 'Gráfico' : 'Tabla'}
     </button>
   );
 
   return (
-    <ChartCard title="Últimos 6 meses" subtitle="Cuánto pagó cada uno, mes a mes" action={toggle}>
-      <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600">
+    <ChartCard title="Los últimos seis meses" subtitle="Cuánto puso cada uno, mes a mes" action={toggle}>
+      <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-slate-600">
         <Legend color="var(--color-padre)" label={profiles.padre.name} value={sumPadre} />
         <Legend color="var(--color-madre)" label={profiles.madre.name} value={sumMadre} />
       </div>
@@ -46,7 +45,7 @@ export default function MonthlyBars({ series, profiles, selectedKey }) {
       {asTable ? (
         <table className="w-full text-[12px] tabular-nums">
           <thead>
-            <tr className="border-b border-slate-100 text-left text-[11px] text-slate-500">
+            <tr className="border-b border-slate-200 text-left text-[12px] text-slate-500">
               <th className="py-1.5 font-medium">Mes</th>
               <th className="py-1.5 text-right font-medium">{profiles.padre.name}</th>
               <th className="py-1.5 text-right font-medium">{profiles.madre.name}</th>

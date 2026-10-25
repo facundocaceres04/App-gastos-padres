@@ -29,8 +29,8 @@ export default defineConfig(({ mode }) => {
           start_url: '/',
           scope: '/',
           display: 'standalone',
-          background_color: '#F8FAFC',
-          theme_color: '#F8FAFC',
+          background_color: '#F6F3ED',
+          theme_color: '#F6F3ED',
           categories: ['finance', 'lifestyle'],
           icons: [
             { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },

@@ -46,7 +46,7 @@ export default function ReceiptField({ existingPath, value, onChange, disabled }
     <div>
       <span className={labelCls}>Comprobante</span>
       {hasReceipt ? (
-        <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-2">
+        <div className="flex items-center gap-3 rounded-[10px] border border-slate-200 bg-white p-2">
           <a
             href={preview?.url}
             target="_blank"
@@ -62,7 +62,7 @@ export default function ReceiptField({ existingPath, value, onChange, disabled }
               <FileText size={22} className="text-slate-500" />
             )}
           </a>
-          <div className="min-w-0 flex-1 text-[12px]">
+          <div className="min-w-0 flex-1 text-[14px]">
             <p className="truncate font-medium text-slate-800">{file ? file.name : 'Comprobante adjunto'}</p>
             {preview?.url && (
               <a href={preview.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand-600 hover:underline">
@@ -86,7 +86,7 @@ export default function ReceiptField({ existingPath, value, onChange, disabled }
           type="button"
           disabled={disabled}
           onClick={() => inputRef.current?.click()}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 py-3 text-[13px] font-medium text-slate-600 transition hover:border-brand-600 hover:text-brand-600 disabled:opacity-50"
+          className="press flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-dashed border-slate-300 text-[14px] text-slate-600 hover:border-slate-500 hover:text-slate-900 disabled:opacity-50"
         >
           <Paperclip size={15} /> Adjuntar foto o PDF
         </button>

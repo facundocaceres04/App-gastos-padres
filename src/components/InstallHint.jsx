@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, Share, SquarePlus, X } from 'lucide-react';
+import { ChevronRight, Share, SquarePlus, X } from 'lucide-react';
 import { useInstall } from '../utils/install';
 
 const HIDDEN_KEY = 'cuentas-claras:instalar-oculto';
@@ -36,24 +36,26 @@ export default function InstallHint({ variant = 'banner', onInstalled }) {
   };
 
   const iosSteps = (
-    <ol className="mt-2 space-y-1.5 text-[12px] text-slate-600">
+    <ol className="mt-2 space-y-1.5 text-[14px] text-slate-600">
       <li className="flex items-center gap-1.5">
-        1. Tocá <Share size={14} className="text-brand-600" aria-label="Compartir" /> <strong>Compartir</strong> en la barra de Safari
+        1. Tocá <Share size={15} className="text-slate-900" aria-label="Compartir" /> <strong className="font-semibold text-slate-900">Compartir</strong> en
+        Safari
       </li>
       <li className="flex items-center gap-1.5">
-        2. Elegí <SquarePlus size={14} className="text-brand-600" /> <strong>Agregar a inicio</strong>
+        2. Elegí <SquarePlus size={15} className="text-slate-900" /> <strong className="font-semibold text-slate-900">Agregar a inicio</strong>
       </li>
     </ol>
   );
 
   if (variant === 'row') {
     return (
-      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-        <button onClick={onInstall} className="flex w-full items-center justify-between text-left">
-          <span className="flex items-center gap-2 text-[12px] font-semibold text-slate-700">
-            <Download size={15} className="text-brand-600" /> Instalar la app en este celular
+      <div className="py-2">
+        <button onClick={onInstall} className="flex w-full items-center justify-between gap-3 text-left">
+          <span className="text-[15px] text-slate-900">Instalar la app en este celular</span>
+          <span className="flex items-center gap-1 text-[14px] text-slate-500">
+            {mode === 'ios' ? 'Cómo' : 'Instalar'}
+            <ChevronRight size={16} className={`transition-transform ${showIOS ? 'rotate-90' : ''}`} />
           </span>
-          <span className="text-[12px] font-semibold text-brand-600">{mode === 'ios' ? 'Cómo' : 'Instalar'}</span>
         </button>
         {showIOS && iosSteps}
       </div>
@@ -61,15 +63,15 @@ export default function InstallHint({ variant = 'banner', onInstalled }) {
   }
 
   return (
-    <div className="relative rounded-2xl border border-brand-100 bg-brand-50 p-3.5 pr-10 lg:hidden">
-      <button onClick={hide} className="absolute top-1.5 right-1.5 flex h-9 w-9 items-center justify-center rounded-full text-slate-500" aria-label="No mostrar más">
-        <X size={16} />
+    <div className="relative rounded-[16px] border border-slate-200 px-4 pt-3.5 pb-4 lg:hidden">
+      <button onClick={hide} className="absolute top-1.5 right-1.5 flex h-10 w-10 items-center justify-center rounded-full text-slate-500" aria-label="No mostrar más">
+        <X size={17} />
       </button>
-      <p className="text-[13px] font-semibold text-slate-900">Instalala en tu celular</p>
-      <p className="mt-0.5 text-[12px] text-slate-600">Se abre al instante desde la pantalla de inicio, como cualquier app.</p>
+      <p className="pr-8 text-[15px] font-semibold text-slate-900">Instalala en tu celular</p>
+      <p className="mt-0.5 pr-8 text-[14px] leading-relaxed text-slate-600">Queda en la pantalla de inicio y abre al toque, como cualquier app.</p>
       {mode === 'prompt' ? (
-        <button onClick={onInstall} className="mt-2.5 flex items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2 text-[12px] font-semibold text-white">
-          <Download size={14} /> Instalar
+        <button onClick={onInstall} className="press mt-3 h-10 rounded-[10px] bg-slate-900 px-4 text-[14px] font-semibold text-white">
+          Instalar
         </button>
       ) : (
         iosSteps

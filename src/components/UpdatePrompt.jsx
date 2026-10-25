@@ -24,7 +24,7 @@ export default function UpdatePrompt() {
       role="status"
       className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+0.5rem)] z-[70] flex justify-center px-4"
     >
-      <div className="animate-slide-up flex w-full max-w-sm items-center gap-3 rounded-2xl bg-slate-900 py-2.5 pr-2.5 pl-4 text-[13px] text-white shadow-xl">
+      <div className="animate-slide-up flex w-full max-w-sm items-center gap-3 rounded-[14px] bg-slate-900 py-2.5 pr-2.5 pl-4 text-[14px] text-white shadow-[0_10px_30px_-10px_rgba(26,23,20,0.5)]">
         <RefreshCw size={16} className="shrink-0" />
         <span className="flex-1">Hay una versión nueva de la app.</span>
         <button onClick={() => setNeedRefresh(false)} className="rounded-lg px-2 py-1.5 text-[12px] font-medium opacity-80 hover:opacity-100">

@@ -23,7 +23,7 @@ export default function CategoryDonut({ data, total }) {
   });
 
   return (
-    <ChartCard title="Por categoría" subtitle="Cómo se reparte el gasto del mes">
+    <ChartCard title="Por categoría" subtitle="En qué se fue la plata este mes">
       {data.length === 0 ? (
         <Empty />
       ) : (
@@ -52,11 +52,11 @@ export default function CategoryDonut({ data, total }) {
               ))}
             </svg>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className="text-[10px] font-medium text-slate-500">{current ? getCategory(current.id).label : 'Total'}</span>
+              <span className="text-[12px] text-slate-500">{current ? getCategory(current.id).label : 'Total'}</span>
               <span className="font-display text-[15px] font-bold tracking-tight text-slate-900 tabular-nums">
                 {formatMoney(current ? current.amount : total)}
               </span>
-              {current && <span className="text-[10px] text-slate-500 tabular-nums">{Math.round(current.pct)}%</span>}
+              {current && <span className="text-[12px] text-slate-500 tabular-nums">{Math.round(current.pct)}%</span>}
             </div>
           </div>
 
@@ -70,7 +70,7 @@ export default function CategoryDonut({ data, total }) {
                     onPointerEnter={() => setActive(d.id)}
                     onPointerLeave={() => setActive(null)}
                     onClick={() => setActive((a) => (a === d.id ? null : d.id))}
-                    className={`flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-[12px] transition ${
+                    className={`flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-[14px] transition ${
                       active === d.id ? 'bg-slate-50' : ''
                     }`}
                   >
@@ -80,7 +80,7 @@ export default function CategoryDonut({ data, total }) {
                     </span>
                     <span className="flex shrink-0 items-baseline gap-2 tabular-nums">
                       <span className="font-semibold text-slate-900">{formatMoney(d.amount)}</span>
-                      <span className="w-8 text-right text-[11px] text-slate-500">{Math.round(d.pct)}%</span>
+                      <span className="w-9 text-right text-[13px] text-slate-500">{Math.round(d.pct)}%</span>
                     </span>
                   </button>
                 </li>
@@ -97,7 +97,7 @@ function Empty() {
   return (
     <div className="flex flex-col items-center py-6 text-center">
       <PieChart size={26} className="text-slate-300" />
-      <p className="mt-1 text-[12px] text-slate-500">Sin gastos en este mes</p>
+      <p className="mt-1 text-[14px] text-slate-500">Sin gastos en este mes.</p>
     </div>
   );
 }

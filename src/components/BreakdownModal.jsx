@@ -1,34 +1,26 @@
 import Modal, { btnPrimary } from './Modal';
 import { useExpenses } from '../context/ExpensesContext';
 import { formatMoney } from '../utils/formatters';
-import { totalsByCategory } from '../utils/calculator';
+import { countable, totalsByCategory } from '../utils/calculator';
 import { getCategory } from '../data/categories';
 
-const signed = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatMoney(Math.abs(n))}`;
-
-function ParentBlock({ name, pct, quota, paid, balance }) {
+function Row({ label, value, strong = false, muted = false }) {
   return (
-    <div className="space-y-1 border-t border-slate-200/70 pt-2">
-      <div className="flex justify-between text-slate-700">
-        <span>Cuota objetivo {name} ({pct}%):</span>
-        <span className="font-medium tabular-nums">{formatMoney(quota)}</span>
-      </div>
-      <div className="flex justify-between text-[11px] text-slate-500">
-        <span>Abonado por {name}:</span>
-        <span className="tabular-nums">{formatMoney(paid)}</span>
-      </div>
-      <div className="flex justify-between text-[11px] text-slate-500">
-        <span>Balance:</span>
-        <span className={`font-semibold tabular-nums ${balance >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>{signed(balance)}</span>
-      </div>
+    <div className={`flex items-baseline justify-between gap-3 py-1.5 ${muted ? 'text-slate-500' : 'text-slate-700'}`}>
+      <span>{label}</span>
+      <span className={`shrink-0 tabular-nums ${strong ? 'font-semibold text-slate-900' : ''}`}>{value}</span>
     </div>
   );
 }
 
-/** "Cómo se calcula": desglose paso a paso del cálculo. */
+/** "Cómo se calcula": la cuenta escrita renglón por renglón, como en un papel. */
 export default function BreakdownModal({ open, onClose }) {
   const { settlement: s, profiles, monthExpenses } = useExpenses();
-  const byCat = Object.entries(totalsByCategory(monthExpenses)).sort((a, b) => b[1] - a[1]);
+  const byCat = Object.entries(totalsByCategory(countable(monthExpenses))).sort((a, b) => b[1] - a[1]);
+  const people = [
+    { role: 'padre', pct: s.pctFather, quota: s.quotaFather, paid: s.paidFather, diff: s.balanceFather },
+    { role: 'madre', pct: s.pctMother, quota: s.quotaMother, paid: s.paidMother, diff: s.balanceMother },
+  ];
 
   return (
     <Modal
@@ -41,49 +33,52 @@ export default function BreakdownModal({ open, onClose }) {
         </button>
       }
     >
-      <div className="space-y-2.5 text-[12px] text-slate-600">
-        <p className="leading-relaxed">
-          Basado en el acuerdo de{' '}
-          <strong>
-            {s.pctFather}% {profiles.padre.name} / {s.pctMother}% {profiles.madre.name}
-          </strong>{' '}
-          sobre los gastos registrados de este período:
+      <div className="space-y-5 text-[15px]">
+        <p className="leading-relaxed text-slate-600">
+          Se suman los gastos del mes y se reparten {s.pctFather}/{s.pctMother}. Quien puso menos de lo que le toca le pasa la diferencia al otro.
         </p>
-        <div className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
-          <div className="flex items-center justify-between text-[13px] font-semibold text-slate-900">
-            <span>Gasto total común:</span>
-            <span className="tabular-nums">{formatMoney(s.total)}</span>
-          </div>
-          <ParentBlock name={profiles.padre.name} pct={s.pctFather} quota={s.quotaFather} paid={s.paidFather} balance={s.balanceFather} />
-          <ParentBlock name={profiles.madre.name} pct={s.pctMother} quota={s.quotaMother} paid={s.paidMother} balance={s.balanceMother} />
+
+        <div className="border-y border-slate-200 py-2">
+          <Row label="Gastos del mes" value={formatMoney(s.total)} strong />
+          {people.map((p) => (
+            <div key={p.role} className="border-t border-dashed border-slate-200 pt-1.5 mt-1.5">
+              <Row label={`A ${profiles[p.role].name} le toca el ${p.pct}%`} value={formatMoney(p.quota)} />
+              <Row label="y puso" value={formatMoney(p.paid)} muted />
+              <Row
+                label={p.diff > 0 ? 'puso de más' : p.diff < 0 ? 'puso de menos' : 'puso justo'}
+                value={p.diff === 0 ? '—' : formatMoney(Math.abs(p.diff))}
+                muted
+              />
+            </div>
+          ))}
         </div>
 
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-[12px] font-medium text-emerald-900">
+        <p className="leading-relaxed text-slate-700">
           {s.isBalanced ? (
-            <>No hay saldo a compensar: cada uno aportó exactamente lo acordado.</>
+            'No hay nada para compensar: cada uno puso lo que le tocaba.'
           ) : (
             <>
-              Si {profiles[s.debtor].name} le transfiere <strong>{formatMoney(s.amountToTransfer)}</strong> a {profiles[s.creditor].name}, cada uno queda aportando lo acordado.
+              Por eso <strong className="font-semibold text-slate-900">{profiles[s.debtor].name}</strong> le pasa{' '}
+              <strong className="font-semibold text-slate-900 tabular-nums">{formatMoney(s.amountToTransfer)}</strong> a {profiles[s.creditor].name}{' '}
+              y quedan parejos.
             </>
           )}
-        </div>
+        </p>
 
         {byCat.length > 0 && (
-          <div className="pt-1">
-            <p className={'mb-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase'}>Por categoría</p>
-            <ul className="space-y-2">
+          <div>
+            <p className="mb-2 text-[15px] font-semibold text-slate-900">En qué se fue</p>
+            <ul className="space-y-2.5">
               {byCat.map(([cat, amount]) => {
                 const c = getCategory(cat);
                 return (
                   <li key={cat}>
-                    <div className="mb-1 flex justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <c.icon size={13} className="text-slate-400" /> {c.label}
-                      </span>
-                      <span className="font-medium text-slate-800 tabular-nums">{formatMoney(amount)}</span>
+                    <div className="mb-1 flex justify-between text-[14px]">
+                      <span className="text-slate-700">{c.label}</span>
+                      <span className="text-slate-900 tabular-nums">{formatMoney(amount)}</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-slate-100">
-                      <div className="h-full rounded-full bg-brand-600/70" style={{ width: `${(amount / s.total) * 100}%` }} />
+                      <div className="h-full rounded-full" style={{ width: `${(amount / s.total) * 100}%`, background: c.color }} />
                     </div>
                   </li>
                 );

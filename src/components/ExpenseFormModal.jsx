@@ -80,7 +80,7 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
     <Modal
       open={open}
       onClose={onClose}
-      title={locked ? 'Gasto' : expense ? 'Editar gasto' : 'Nuevo gasto común'}
+      title={locked ? 'Gasto' : expense ? 'Editar gasto' : 'Nuevo gasto'}
       footer={
         locked ? (
           <button type="button" onClick={onClose} className={btnSecondary}>
@@ -89,13 +89,10 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
         ) : (
         <>
           {expense ? (
-            <button type="button" onClick={() => onDelete(expense)} className={`${btnSecondary} flex-none px-3`} aria-label="Eliminar gasto">
-              <Trash2 size={15} />
+            <button type="button" onClick={() => onDelete(expense)} className={`${btnSecondary} w-12 flex-none px-0`} aria-label="Eliminar gasto">
+              <Trash2 size={18} />
             </button>
           ) : null}
-          <button type="button" onClick={onClose} className={btnSecondary}>
-            Cancelar
-          </button>
           <button type="submit" form="expense-form" className={btnPrimary} disabled={saving}>
             {saving && <Loader2 size={15} className="animate-spin" />}
             {saving ? 'Guardando…' : expense ? 'Guardar cambios' : 'Guardar gasto'}
@@ -106,8 +103,8 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
     >
       <form id="expense-form" onSubmit={submit} className="space-y-3.5" noValidate>
         {locked && (
-          <p className="flex items-center gap-2 rounded-xl bg-sage-50 p-3 text-[13px] text-sage-700">
-            <Lock size={15} className="shrink-0" /> {label} está saldado. Para modificar este gasto, primero reabrí el mes.
+          <p className="flex items-start gap-2 text-[14px] leading-relaxed text-slate-600">
+            <Lock size={15} className="mt-[3px] shrink-0" /> {label.split(' ')[0]} está saldado. Para modificar este gasto, primero reabrí el mes.
           </p>
         )}
         <fieldset disabled={locked} className="min-w-0 space-y-3.5">
@@ -123,13 +120,13 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
             aria-invalid={Boolean(errors.concept)}
             className={inputCls}
           />
-          <div className="no-scrollbar mt-1.5 flex gap-1 overflow-x-auto">
+          <div className="no-scrollbar -mx-5 mt-2 flex gap-1.5 overflow-x-auto px-5">
             {CONCEPT_SUGGESTIONS.map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => set('concept', s)}
-                className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-[12px] text-slate-600 transition hover:bg-brand-50 hover:text-brand-700"
+                className="press shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-[13px] text-slate-600 hover:border-slate-400 hover:text-slate-900"
               >
                 {s}
               </button>
@@ -140,9 +137,9 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
 
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className={labelCls} htmlFor="amount">Monto ($)</label>
+            <label className={labelCls} htmlFor="amount">Monto</label>
             <div className="relative">
-              <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[13px] text-slate-500">$</span>
+              <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[15px] text-slate-500">$</span>
               {/* Texto (no number): así se puede escribir "1.500,50" como en Argentina. */}
               <input
                 id="amount"
@@ -154,7 +151,7 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
                 placeholder="15.000"
                 aria-invalid={Boolean(errors.amount)}
                 aria-describedby={errors.amount ? 'amount-error' : undefined}
-                className={`${inputCls} pl-6 text-[15px] font-bold tabular-nums`}
+                className={`${inputCls} pl-6 font-semibold tabular-nums`}
               />
             </div>
             {errors.amount && (
@@ -179,10 +176,11 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
                 type="button"
                 onClick={() => set('paidBy', who)}
                 aria-pressed={form.paidBy === who}
-                className={`rounded-xl border py-2.5 text-[13px] font-semibold transition-all ${
-                  form.paidBy === who ? 'border-slate-900 bg-slate-900 text-white shadow-xs' : 'border-slate-200 bg-white text-slate-700'
+                className={`press flex h-11 items-center justify-center gap-2 rounded-[10px] border text-[15px] font-medium ${
+                  form.paidBy === who ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
                 }`}
               >
+                <span className={`h-2 w-2 rounded-full ${who === 'padre' ? 'bg-padre' : 'bg-madre'}`} />
                 {profiles[who].name}
               </button>
             ))}
@@ -192,7 +190,7 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className={labelCls} htmlFor="child">Hijo/a</label>
-            <select id="child" value={form.child} onChange={(e) => set('child', e.target.value)} className={`${inputCls} px-2 text-[13px]`}>
+            <select id="child" value={form.child} onChange={(e) => set('child', e.target.value)} className={inputCls}>
               <option value="">Sin asignar</option>
               {childOptions.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -201,7 +199,7 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
           </div>
           <div>
             <label className={labelCls} htmlFor="category">Categoría</label>
-            <select id="category" value={form.category} onChange={(e) => set('category', e.target.value)} className={`${inputCls} px-2 text-[13px]`}>
+            <select id="category" value={form.category} onChange={(e) => set('category', e.target.value)} className={inputCls}>
               {CATEGORIES.map((c) => (
                 <option key={c.id} value={c.id}>{c.label}</option>
               ))}
@@ -212,7 +210,7 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
         </fieldset>
         {live?.createdBy && <ReviewPanel expense={live} locked={locked} onDone={onSaved} />}
         {expense?.createdBy && (
-          <p className="text-[12px] text-slate-500">
+          <p className="text-[13px] text-slate-500">
             Cargado por {nameOf(expense.createdBy)} · {relativeTime(expense.createdAt)}
             {expense.updatedBy && <> · editado por {nameOf(expense.updatedBy)} {relativeTime(expense.updatedAt)}</>}
           </p>

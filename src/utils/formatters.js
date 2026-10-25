@@ -3,10 +3,14 @@ export const MONTHS = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 
-const number = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 });
+const whole = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 });
+const cents = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-/** 50000 → "$50.000" */
-export const formatMoney = (n) => `$${number.format(Number(n) || 0)}`;
+/** 50000 → "$50.000"; con centavos siempre dos decimales: 112850.5 → "$112.850,50". */
+export const formatMoney = (n) => {
+  const v = Math.round((Number(n) || 0) * 100) / 100;
+  return `$${(Number.isInteger(v) ? whole : cents).format(v)}`;
+};
 
 /** "2026-10" a partir de año y mes (0-11). */
 export const monthKey = (year, month) => `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -72,7 +76,8 @@ export function parseAmount(input) {
 }
 
 /** 1500.5 → "1500,5" (para mostrar un monto en un campo editable). */
-export const amountToInput = (n) => (n == null ? '' : String(n).replace('.', ','));
+/** Monto guardado → texto del campo, como se escribe en Argentina: 27800 → "27.800", 1500.5 → "1.500,50". */
+export const amountToInput = (n) => (n == null ? '' : formatMoney(n).slice(1));
 
 /** "Mateo, Sofía" → { list: ['Mateo', 'Sofía'] } o { error } si no respeta los límites de la base. */
 export function parseChildren(text) {
@@ -80,4 +85,12 @@ export function parseChildren(text) {
   if (list.length > 10) return { error: 'Se pueden cargar hasta 10 hijos/as' };
   if (list.some((k) => k.length > 40)) return { error: 'Cada nombre puede tener hasta 40 letras' };
   return { list };
+}
+
+/** Montos grandes en palabras cortas, para datos secundarios: 3342602 → "$3,3 M", 835650 → "$836 mil". */
+export function compactMoneyLong(n) {
+  const v = Math.round(Number(n) || 0);
+  if (Math.abs(v) >= 1_000_000) return `$${(v / 1_000_000).toLocaleString('es-AR', { maximumFractionDigits: 1 })} M`;
+  if (Math.abs(v) >= 10_000) return `$${Math.round(v / 1000).toLocaleString('es-AR')} mil`;
+  return formatMoney(v);
 }

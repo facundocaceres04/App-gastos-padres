@@ -9,11 +9,11 @@ export default function ChildBars({ data, total }) {
   const max = Math.max(...data.map((d) => d.amount), 0);
 
   return (
-    <ChartCard title="Por hijo/a" subtitle="Gasto del mes asignado a cada uno">
+    <ChartCard title="Para quién" subtitle="Lo que se gastó en cada uno este mes">
       {data.length === 0 ? (
         <div className="flex flex-col items-center py-6 text-center">
           <Baby size={26} className="text-slate-300" />
-          <p className="mt-1 text-[12px] text-slate-500">Sin gastos en este mes</p>
+          <p className="mt-1 text-[14px] text-slate-500">Sin gastos en este mes.</p>
         </div>
       ) : (
         <ul className="space-y-2.5">
@@ -26,11 +26,11 @@ export default function ChildBars({ data, total }) {
                 onPointerLeave={() => setActive(null)}
                 title={`${d.name}: ${formatMoney(d.amount)} (${pct}% del mes)`}
               >
-                <div className="mb-1 flex items-baseline justify-between text-[12px]">
+                <div className="mb-1 flex items-baseline justify-between text-[14px]">
                   <span className="text-slate-700">{d.name}</span>
                   <span className="tabular-nums">
                     <span className="font-semibold text-slate-900">{formatMoney(d.amount)}</span>
-                    <span className="ml-2 inline-block w-8 text-right text-[11px] text-slate-500">
+                    <span className="ml-2 inline-block w-9 text-right text-[13px] text-slate-500">
                       {pct}%
                     </span>
                   </span>

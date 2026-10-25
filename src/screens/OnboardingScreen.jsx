@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { KeyRound, Loader2, LogOut, Users } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { friendlyError } from '../lib/supabase';
 import { parseChildren } from '../utils/formatters';
-import { inputCls, labelCls } from '../components/Modal';
+import { btnPrimary, FormError, inputCls, labelCls } from '../components/Modal';
 
 /** Primer ingreso: crear la familia (y obtener el código) o unirse con un código. */
 export default function OnboardingScreen() {
@@ -58,8 +58,9 @@ export default function OnboardingScreen() {
       key={id}
       type="button"
       onClick={() => setRole(id)}
-      className={`rounded-xl border py-2 text-[12px] font-semibold transition-all ${
-        role === id ? 'border-slate-900 bg-slate-900 text-white shadow-xs' : 'border-slate-200 bg-white text-slate-700'
+      aria-pressed={role === id}
+      className={`press h-11 rounded-[10px] border text-[15px] font-medium ${
+        role === id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
       }`}
     >
       {label}
@@ -67,114 +68,103 @@ export default function OnboardingScreen() {
   );
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-surface px-4 py-10">
+    <div className="flex min-h-dvh flex-col bg-surface px-6 pt-[calc(env(safe-area-inset-top)+2rem)] pb-10 sm:items-center sm:justify-center">
       <div className="w-full max-w-sm">
-        <div className="mb-5 text-center">
-          <h1 className="font-display text-[20px] font-bold tracking-tight text-slate-900">Configuremos tu familia</h1>
-          <p className="mt-1 text-[13px] text-slate-500">
-            Uno de los dos crea la familia y le comparte el código al otro.
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          <div className="mb-4 grid grid-cols-2 rounded-xl bg-slate-200/60 p-0.5">
-            {[
-              ['create', 'Crear familia', Users],
-              ['join', 'Tengo un código', KeyRound],
-            ].map(([id, label, Icon]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => {
-                  setTab(id);
-                  setError('');
-                }}
-                className={`flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-[12px] transition-all ${
-                  tab === id ? 'bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-300' : 'font-medium text-slate-600'
-                }`}
-              >
-                <Icon size={13} /> {label}
-              </button>
-            ))}
-          </div>
-
-          {tab === 'create' ? (
-            <form onSubmit={create} className="space-y-3.5">
-              <div>
-                <span className={labelCls}>Yo soy</span>
-                <div className="grid grid-cols-2 gap-2">
-                  {roleBtn('padre', 'Padre')}
-                  {roleBtn('madre', 'Madre')}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className={labelCls} htmlFor="my-name">Tu nombre</label>
-                  <input id="my-name" value={myName} onChange={(e) => setMyName(e.target.value)} maxLength={40} placeholder="Martín" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls} htmlFor="other-name">{role === 'padre' ? 'La madre' : 'El padre'}</label>
-                  <input
-                    id="other-name"
-                    value={otherName}
-                    onChange={(e) => setOtherName(e.target.value)}
-                    maxLength={40}
-                    placeholder={role === 'padre' ? 'Laura' : 'Martín'}
-                    className={inputCls}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className={labelCls} htmlFor="kids">Hijos/as (separados por coma)</label>
-                <input id="kids" value={kids} onChange={(e) => setKids(e.target.value)} maxLength={300} placeholder="Mateo, Sofía" className={inputCls} />
-              </div>
-              {error && <p className="rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-800">{error}</p>}
-              <button
-                type="submit"
-                disabled={busy}
-                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-2.5 text-[13px] font-semibold text-white shadow-xs transition hover:bg-slate-800 disabled:opacity-60"
-              >
-                {busy && <Loader2 size={15} className="animate-spin" />}
-                Crear y obtener código
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={join} className="space-y-3.5">
-              <div>
-                <label className={labelCls} htmlFor="code">Código de invitación</label>
-                <input
-                  id="code"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
-                  placeholder="ABC123"
-                  autoCapitalize="characters"
-                  autoComplete="off"
-                  data-keep-size
-                  className={`${inputCls} text-center font-mono text-[20px] font-bold tracking-[0.3em]`}
-                />
-                <p className="mt-1.5 text-[11px] text-slate-500">
-                  Pedíselo al otro progenitor: lo ve en Ajustes → Compartir.
-                </p>
-              </div>
-              {error && <p className="rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-800">{error}</p>}
-              <button
-                type="submit"
-                disabled={busy}
-                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-2.5 text-[13px] font-semibold text-white shadow-xs transition hover:bg-slate-800 disabled:opacity-60"
-              >
-                {busy && <Loader2 size={15} className="animate-spin" />}
-                Unirme a la familia
-              </button>
-            </form>
-          )}
-        </div>
-
-        <div className="mt-4 flex items-center justify-center gap-2 text-[12px] text-slate-500">
-          <span className="truncate">{user?.email}</span>·
-          <button onClick={signOut} className="flex items-center gap-1 font-medium hover:text-slate-800">
-            <LogOut size={12} /> Salir
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="font-display shrink-0 text-[19px] font-medium tracking-[-0.01em] whitespace-nowrap text-slate-900">Cuentas Claras</p>
+          <button onClick={signOut} className="min-w-0 truncate text-[13px] text-slate-500 hover:text-slate-900" title="Salir">
+            {user?.email} · Salir
           </button>
         </div>
+
+        <div className="mt-12 sm:mt-10">
+          <h1 className="font-display text-[34px] leading-[1.1] font-medium tracking-[-0.02em] text-slate-900">Configuremos tu familia</h1>
+          <p className="mt-2 text-[16px] leading-relaxed text-slate-600">Uno de los dos la crea y le pasa el código al otro.</p>
+        </div>
+
+        <div className="mt-7 flex gap-6 border-b border-slate-200" role="tablist">
+          {[
+            ['create', 'Crear familia'],
+            ['join', 'Tengo un código'],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={tab === id}
+              onClick={() => {
+                setTab(id);
+                setError('');
+              }}
+              className={`-mb-px border-b-2 pb-2.5 text-[15px] transition-colors ${
+                tab === id ? 'border-slate-900 font-semibold text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'create' ? (
+          <form onSubmit={create} className="mt-6 space-y-4">
+            <div>
+              <span className={labelCls}>Yo soy</span>
+              <div className="grid grid-cols-2 gap-2">
+                {roleBtn('padre', 'Padre')}
+                {roleBtn('madre', 'Madre')}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className={labelCls} htmlFor="my-name">Tu nombre</label>
+                <input id="my-name" value={myName} onChange={(e) => setMyName(e.target.value)} maxLength={40} placeholder="Martín" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls} htmlFor="other-name">{role === 'padre' ? 'La madre' : 'El padre'}</label>
+                <input
+                  id="other-name"
+                  value={otherName}
+                  onChange={(e) => setOtherName(e.target.value)}
+                  maxLength={40}
+                  placeholder={role === 'padre' ? 'Laura' : 'Martín'}
+                  className={inputCls}
+                />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="kids">Hijos o hijas</label>
+              <input id="kids" value={kids} onChange={(e) => setKids(e.target.value)} maxLength={300} placeholder="Mateo, Sofía" className={inputCls} />
+              <p className="mt-1.5 text-[13px] text-slate-500">Separados por coma.</p>
+            </div>
+            <FormError>{error}</FormError>
+            <button type="submit" disabled={busy} className={`${btnPrimary} w-full`}>
+              {busy && <Loader2 size={16} className="animate-spin" />}
+              Crear y obtener código
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={join} className="mt-6 space-y-4">
+            <div>
+              <label className={labelCls} htmlFor="code">Código</label>
+              <input
+                id="code"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+                placeholder="ABC123"
+                autoCapitalize="characters"
+                autoComplete="off"
+                data-keep-size
+                className={`${inputCls} font-display h-16 text-center text-[30px] font-medium tracking-[0.3em] placeholder:text-slate-300`}
+              />
+              <p className="mt-1.5 text-[13px] text-slate-500">El otro lo encuentra en Ajustes → Compartir.</p>
+            </div>
+            <FormError>{error}</FormError>
+            <button type="submit" disabled={busy} className={`${btnPrimary} w-full`}>
+              {busy && <Loader2 size={16} className="animate-spin" />}
+              Unirme a la familia
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

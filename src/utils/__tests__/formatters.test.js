@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { amountToInput, formatMoney, groupLabel, parseAmount, parseChildren } from '../formatters';
+import { amountToInput, compactMoneyLong, formatMoney, groupLabel, parseAmount, parseChildren } from '../formatters';
 
 describe('parseAmount (formato argentino)', () => {
   it.each([
@@ -18,8 +18,10 @@ describe('parseAmount (formato argentino)', () => {
     expect(parseAmount(input)).toBeNull();
   });
 
-  it('amountToInput usa coma decimal', () => {
-    expect(amountToInput(1500.5)).toBe('1500,5');
+  it('amountToInput escribe el monto como en Argentina (y se puede volver a leer)', () => {
+    expect(amountToInput(1500.5)).toBe('1.500,50');
+    expect(amountToInput(27800)).toBe('27.800');
+    expect(parseAmount(amountToInput(27800))).toBe(27800);
     expect(parseAmount(amountToInput(1500.5))).toBe(1500.5);
   });
 });
@@ -27,7 +29,7 @@ describe('parseAmount (formato argentino)', () => {
 describe('formatMoney', () => {
   it('usa separador de miles con punto', () => {
     expect(formatMoney(1234567)).toBe('$1.234.567');
-    expect(formatMoney(97500.5)).toBe('$97.500,5');
+    expect(formatMoney(97500.5)).toBe('$97.500,50');
   });
 });
 
@@ -56,5 +58,22 @@ describe('parseChildren', () => {
   it('respeta los límites de la base', () => {
     expect(parseChildren(Array(11).fill('A').join(',')).error).toMatch(/10/);
     expect(parseChildren('x'.repeat(41)).error).toMatch(/40/);
+  });
+});
+
+describe('formatMoney', () => {
+  it('sin centavos no muestra decimales; con centavos, siempre dos', () => {
+    expect(formatMoney(50000)).toBe('$50.000');
+    expect(formatMoney(112850.5)).toBe('$112.850,50');
+    expect(formatMoney(56574.75)).toBe('$56.574,75');
+    expect(formatMoney(0.1 + 0.2)).toBe('$0,30');
+  });
+});
+
+describe('compactMoneyLong', () => {
+  it('abrevia montos grandes en palabras', () => {
+    expect(compactMoneyLong(3342602)).toBe('$3,3 M');
+    expect(compactMoneyLong(835650.5)).toBe('$836 mil');
+    expect(compactMoneyLong(9500)).toBe('$9.500');
   });
 });

@@ -4,6 +4,6 @@ try {
   var t = localStorage.getItem('cuentas-claras:tema');
   if (t === 'oscuro' || (t !== 'claro' && matchMedia('(prefers-color-scheme: dark)').matches)) {
     document.documentElement.classList.add('dark');
-    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0b1220');
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#15130F');
   }
 } catch (e) {}

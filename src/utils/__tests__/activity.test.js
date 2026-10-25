@@ -22,10 +22,10 @@ describe('describeActivity', () => {
 
   it('cambio de acuerdo y mes saldado', () => {
     expect(describeActivity({ kind: 'split_changed', actor: 'u2', data: { month: '2026-10', from: 50, to: 60 } }, ctx)).toMatchObject({
-      text: 'Laura cambió el acuerdo de Octubre 2026',
+      text: 'Laura cambió el reparto de octubre de 2026',
       detail: '50 / 50 → 60 / 40',
     });
-    expect(describeActivity({ kind: 'month_settled', actor: 'u1', data: { month: '2026-09' } }, ctx).text).toBe('Martín marcó Septiembre 2026 como saldado');
+    expect(describeActivity({ kind: 'month_settled', actor: 'u1', data: { month: '2026-09' } }, ctx).text).toBe('Martín marcó septiembre de 2026 como saldado');
   });
 
   it('revisiones y comprobantes', () => {
@@ -47,7 +47,7 @@ describe('describeActivity', () => {
   });
 
   it('actor desconocido (cuenta borrada)', () => {
-    expect(describeActivity({ kind: 'month_reopened', actor: null, data: { month: '2026-10' } }, ctx).text).toBe('Alguien reabrió Octubre 2026');
+    expect(describeActivity({ kind: 'month_reopened', actor: null, data: { month: '2026-10' } }, ctx).text).toBe('Alguien reabrió octubre de 2026');
   });
 });
 

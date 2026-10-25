@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Loader2, MessageCircle, RefreshCw, UserPlus } from 'lucide-react';
+import { Copy, Loader2 } from 'lucide-react';
 import Modal, { FormError, btnSecondary } from './Modal';
 import { useExpenses } from '../context/ExpensesContext';
 
@@ -24,9 +24,9 @@ export default function ShareModal({ open, onClose, onCopy }) {
 
   if (partnerJoined) {
     return (
-      <Modal open={open} onClose={onClose} title="Compartir con el otro progenitor" icon={UserPlus}>
-        <p className="rounded-xl border border-sage-100 bg-sage-50 p-3 text-[12px] text-sage-700">
-          {other} ya está en la familia. Los dos ven y editan los mismos gastos en tiempo real.
+      <Modal open={open} onClose={onClose} title="Compartir">
+        <p className="pb-2 text-[15px] leading-relaxed text-slate-600">
+          {other} ya está en la familia. Los dos ven los mismos gastos y cada cambio le llega al otro al instante.
         </p>
       </Modal>
     );
@@ -36,49 +36,48 @@ export default function ShareModal({ open, onClose, onCopy }) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Compartir con el otro progenitor"
-      icon={UserPlus}
+      title={`Invitar a ${other}`}
       footer={
         <>
           <button onClick={() => onCopy(link, 'Link copiado')} className={btnSecondary}>
-            <Copy size={14} /> Copiar link
+            Copiar link
           </button>
           <a
             href={`https://wa.me/?text=${encodeURIComponent(message)}`}
             target="_blank"
             rel="noreferrer"
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-[12px] font-semibold text-white shadow-xs transition hover:bg-emerald-700"
+            className="press flex h-12 flex-1 items-center justify-center rounded-[12px] bg-[#1f8a4c] text-[15px] font-semibold text-white hover:bg-[#19753f]"
           >
-            <MessageCircle size={14} /> Enviar por WhatsApp
+            Mandar por WhatsApp
           </a>
         </>
       }
     >
-      <div className="space-y-3 text-[12px] text-slate-600">
-        <p className="leading-relaxed">
-          Pasale este código a <strong>{other}</strong>. Cuando cree su cuenta e ingrese el código, van a ver los mismos gastos y el mismo
-          balance, actualizados al instante.
+      <div className="space-y-5 pb-1">
+        <p className="text-[15px] leading-relaxed text-slate-600">
+          Cuando {other} cree su cuenta y ponga este código, van a ver los mismos gastos y el mismo balance.
         </p>
         <button
           onClick={() => onCopy(inviteCode, 'Código copiado')}
-          className="group w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 py-4 text-center transition hover:border-brand-600"
+          className="press group flex w-full items-center justify-between gap-3 rounded-[14px] border border-slate-200 bg-white px-4 py-4 text-left"
           title="Copiar código"
         >
-          <span className="font-display block text-[30px] font-bold tracking-[0.35em] text-slate-900">{inviteCode}</span>
-          <span className="mt-1 flex items-center justify-center gap-1 text-[11px] text-slate-400 group-hover:text-brand-600">
-            <Copy size={11} /> Tocá para copiar
+          <span className="font-display text-[34px] leading-none font-medium tracking-[0.25em] text-slate-900">{inviteCode}</span>
+          <span className="flex items-center gap-1.5 text-[14px] text-slate-500 group-hover:text-slate-900">
+            <Copy size={15} /> Copiar
           </span>
         </button>
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] text-slate-500">Si lo compartiste por error, generá otro y el anterior deja de servir.</span>
+        <p className="text-[14px] leading-relaxed text-slate-500">
+          ¿Lo mandaste a quien no era?{' '}
           <button
             onClick={rotate}
             disabled={rotating}
-            className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-semibold text-brand-600 hover:bg-brand-50 disabled:opacity-60"
+            className="inline-flex items-center gap-1 font-medium text-slate-900 underline underline-offset-[3px] disabled:opacity-60"
           >
-            {rotating ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Generar código nuevo
-          </button>
-        </div>
+            {rotating && <Loader2 size={13} className="animate-spin" />} Generar código nuevo
+          </button>{' '}
+          y el anterior deja de servir.
+        </p>
         <FormError>{error}</FormError>
       </div>
     </Modal>

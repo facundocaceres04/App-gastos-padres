@@ -1,7 +1,7 @@
 import { MONTHS, formatMoney } from './formatters';
 import { getCategory } from '../data/categories';
 
-const monthName = (key) => (key ? `${MONTHS[Number(key.slice(5, 7)) - 1]} ${key.slice(0, 4)}` : '');
+const monthName = (key) => (key ? `${MONTHS[Number(key.slice(5, 7)) - 1].toLowerCase()} de ${key.slice(0, 4)}` : '');
 const shortDate = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '');
 
 const FIELD_LABELS = {
@@ -53,7 +53,7 @@ export function describeActivity(entry, { nameOf, profiles }) {
     case 'split_changed':
       return {
         tone: 'info',
-        text: `${who} cambió el acuerdo de ${monthName(d.month)}`,
+        text: `${who} cambió el reparto de ${monthName(d.month)}`,
         detail: d.from == null ? `${d.to} / ${100 - d.to}` : `${d.from} / ${100 - d.from} → ${d.to} / ${100 - d.to}`,
       };
     case 'month_settled':

@@ -40,8 +40,8 @@ export default function ReviewPanel({ expense, locked, onDone }) {
         <p className="flex items-center gap-1.5 font-medium">
           <Eye size={15} /> {reviewer ?? 'El otro progenitor'} lo observó
         </p>
-        {expense.reviewNote && <p className="mt-1 text-[12px]">“{expense.reviewNote}”</p>}
-        <p className="mt-1 text-[12px] text-slate-600">
+        {expense.reviewNote && <p className="mt-1 text-slate-900">“{expense.reviewNote}”</p>}
+        <p className="mt-1 text-[13px] text-slate-600">
           No cuenta en el balance hasta que se resuelva{canReview ? '' : ': podés corregirlo y vuelve a quedar pendiente'}.
         </p>
       </div>
@@ -57,7 +57,9 @@ export default function ReviewPanel({ expense, locked, onDone }) {
 
   return (
     <section
-      className={`space-y-2.5 rounded-xl p-3 text-[13px] ${status === 'observado' ? 'bg-amber-50' : status === 'aceptado' ? 'bg-sage-50' : 'bg-slate-50'}`}
+      className={`space-y-3 border-l-2 py-0.5 pl-3.5 text-[14px] leading-relaxed ${
+        status === 'observado' ? 'border-amber-500' : status === 'aceptado' ? 'border-sage-500' : 'border-brand-600'
+      }`}
     >
       {summary}
 
@@ -68,7 +70,7 @@ export default function ReviewPanel({ expense, locked, onDone }) {
               type="button"
               disabled={busy}
               onClick={() => send('aceptado')}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-2.5 text-[13px] font-semibold text-white disabled:opacity-60"
+              className="press flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[10px] bg-slate-900 text-[14px] font-semibold text-white disabled:opacity-60"
             >
               {busy ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Aceptar
             </button>
@@ -78,13 +80,13 @@ export default function ReviewPanel({ expense, locked, onDone }) {
               type="button"
               disabled={busy}
               onClick={() => setMode('observar')}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white py-2.5 text-[13px] font-semibold text-slate-700"
+              className="press flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[10px] bg-slate-100 text-[14px] font-semibold text-slate-800 hover:bg-slate-200"
             >
               <Eye size={14} /> Observar
             </button>
           )}
           {status !== 'pendiente' && (
-            <button type="button" disabled={busy} onClick={() => send('pendiente')} className="rounded-xl px-3 text-[12px] font-medium text-slate-500 hover:text-slate-800">
+            <button type="button" disabled={busy} onClick={() => send('pendiente')} className="rounded-[10px] px-3 text-[13px] font-medium text-slate-500 underline underline-offset-[3px] hover:text-slate-800">
               Deshacer
             </button>
           )}
@@ -93,7 +95,7 @@ export default function ReviewPanel({ expense, locked, onDone }) {
 
       {canReview && mode === 'observar' && (
         <div className="space-y-2">
-          <p className="text-[12px] text-slate-600">¿Qué hay que revisar? El gasto deja de contar hasta que se resuelva.</p>
+          <p className="text-[13px] text-slate-600">¿Qué hay que revisar? El gasto deja de contar hasta que se resuelva.</p>
           <div className="flex flex-wrap gap-1.5">
             {REASONS.map((r) => (
               <button
@@ -101,8 +103,8 @@ export default function ReviewPanel({ expense, locked, onDone }) {
                 type="button"
                 onClick={() => setNote(r)}
                 aria-pressed={note === r}
-                className={`rounded-full px-3 py-1.5 text-[12px] ring-1 transition ${
-                  note === r ? 'bg-slate-900 text-white ring-slate-900' : 'bg-white text-slate-700 ring-slate-200'
+                className={`press rounded-full border px-3 py-1.5 text-[13px] ${
+                  note === r ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-700 hover:border-slate-400'
                 }`}
               >
                 {r}
@@ -115,17 +117,17 @@ export default function ReviewPanel({ expense, locked, onDone }) {
             maxLength={140}
             placeholder="U otro motivo, breve"
             aria-label="Motivo de la observación"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px] focus:border-brand-600 focus:outline-none"
+            className="w-full rounded-[10px] border border-slate-200 bg-white px-3 py-2.5 text-[15px] focus:border-slate-900 focus:outline-none"
           />
           <div className="flex gap-2">
-            <button type="button" onClick={() => setMode(null)} className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-[13px] font-semibold text-slate-600">
+            <button type="button" onClick={() => setMode(null)} className="press h-11 flex-1 rounded-[10px] bg-slate-100 text-[14px] font-semibold text-slate-700">
               Cancelar
             </button>
             <button
               type="button"
               disabled={busy || !note.trim()}
               onClick={() => send('observado', note.trim())}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-slate-900 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50"
+              className="press flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[10px] bg-slate-900 text-[14px] font-semibold text-white disabled:opacity-50"
             >
               {busy && <Loader2 size={14} className="animate-spin" />} Enviar observación
             </button>
