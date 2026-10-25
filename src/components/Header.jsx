@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, History, Moon, Plus, Settings, Sun } from 'lucide-react';
+import { ChevronLeft, ChevronRight, History, Moon, Plus, Sun } from 'lucide-react';
 import { useExpenses } from '../context/ExpensesContext';
 import { setThemePref } from '../utils/theme';
 
@@ -7,7 +7,7 @@ import { setThemePref } from '../utils/theme';
 const joinNames = (names) => (names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} y ${names.at(-1)}`);
 
 /** Encabezado: el mes que se está mirando es el título; a la derecha, la actividad. */
-export default function Header({ onAdd, onActivity, onSettings, unread }) {
+export default function Header({ onAdd, onActivity, unread, showMonth = true }) {
   const { childrenList, current, shiftMonth, label } = useExpenses();
   const [month, year] = label.split(' ');
   const isThisYear = current.year === new Date().getFullYear();
@@ -32,21 +32,26 @@ export default function Header({ onAdd, onActivity, onSettings, unread }) {
             height="40"
             className="h-8 w-8 shrink-0 rounded-[9px] min-[360px]:h-9 min-[360px]:w-9 min-[380px]:h-10 min-[380px]:w-10 min-[380px]:rounded-[10px]"
           />
-          <div className="min-w-0">
-            <p className="truncate text-[13px] text-slate-500">{joinNames(childrenList) || 'Cuentas Claras'}</p>
-            <div className="-ml-2 flex items-center">
-              <button onClick={() => shiftMonth(-1)} className={`${ghost} h-9 w-7 min-[380px]:w-8`} aria-label="Mes anterior">
-                <ChevronLeft size={18} />
-              </button>
-              <h1 className="font-display min-w-0 truncate px-0.5 text-[21px] leading-none font-medium tracking-[-0.02em] text-slate-900 min-[360px]:text-[23px] min-[380px]:text-[26px]">
-                {month}
-                {!isThisYear && <span className="ml-1.5 text-slate-400">{year}</span>}
-              </h1>
-              <button onClick={() => shiftMonth(1)} className={`${ghost} h-9 w-7 min-[380px]:w-8`} aria-label="Mes siguiente">
-                <ChevronRight size={18} />
-              </button>
+          {/* En Ajustes el mes no importa: solo el nombre de la app. */}
+          {!showMonth ? (
+            <p className="font-display truncate text-[21px] font-medium tracking-[-0.01em] text-slate-900">Cuentas Claras</p>
+          ) : (
+            <div className="min-w-0">
+              <p className="truncate text-[13px] text-slate-500">{joinNames(childrenList) || 'Cuentas Claras'}</p>
+              <div className="-ml-2 flex items-center">
+                <button onClick={() => shiftMonth(-1)} className={`${ghost} h-9 w-7 min-[380px]:w-8`} aria-label="Mes anterior">
+                  <ChevronLeft size={18} />
+                </button>
+                <h1 className="font-display min-w-0 truncate px-0.5 text-[21px] leading-none font-medium tracking-[-0.02em] text-slate-900 min-[360px]:text-[23px] min-[380px]:text-[26px]">
+                  {month}
+                  {!isThisYear && <span className="ml-1.5 text-slate-400">{year}</span>}
+                </h1>
+                <button onClick={() => shiftMonth(1)} className={`${ghost} h-9 w-7 min-[380px]:w-8`} aria-label="Mes siguiente">
+                  <ChevronRight size={18} />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
@@ -61,9 +66,6 @@ export default function Header({ onAdd, onActivity, onSettings, unread }) {
             title={dark ? 'Modo claro' : 'Modo oscuro'}
           >
             {dark ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-          <button onClick={onSettings} className={`${ghost} hidden lg:flex`} aria-label="Ajustes" title="Ajustes">
-            <Settings size={18} />
           </button>
           <button
             onClick={onAdd}

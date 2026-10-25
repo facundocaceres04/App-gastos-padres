@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronRight, Loader2 } from 'lucide-react';
-import Modal, { FormError, btnPrimary, btnSecondary, inputCls, labelCls } from './Modal';
+import { FormError, btnPrimary, btnSecondary, inputCls, labelCls } from './Modal';
 import { useExpenses } from '../context/ExpensesContext';
 import { useAuth } from '../context/AuthContext';
 import { getThemePref, setThemePref } from '../utils/theme';
@@ -18,8 +18,8 @@ const headingCls = 'mb-3 text-[15px] font-semibold text-slate-900';
 const linkBtn =
   'text-[15px] text-slate-700 underline decoration-slate-300 underline-offset-[3px] hover:text-slate-900 hover:decoration-slate-900';
 
-/** Ajustes de familia: nombres, CBU/Alias, hijos, compartir y cerrar sesión. */
-export default function SettingsModal({ open, onClose, onSaved, onShare }) {
+/** Página de Ajustes: tus datos, hijos, compartir, apariencia, integrantes y cerrar sesión. */
+export default function SettingsView({ onSaved, onShare }) {
   const {
     profiles,
     setProfiles,
@@ -43,18 +43,30 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
   const [familyError, setFamilyError] = useState(null);
   const other = profiles[otherRole].name;
 
-  // El borrador se inicializa SOLO al abrir: si llega un cambio del otro mientras escribís
+  // El borrador se arma al entrar a la página: si llega un cambio del otro mientras escribís
   // (o volvés de la app del banco), no se pisa lo que estabas cargando.
+  // Lo del otro progenitor no se edita acá (salvo su nombre, si todavía no se sumó): se muestra en vivo.
+  const otherEditable = !partnerJoined;
+  // Último valor de la base que vio cada campo: si no lo tocaste, se actualiza solo cuando llega un cambio.
+  const base = useRef({ profiles, kids: childrenList.join(', ') });
   useEffect(() => {
-    if (!open) return;
-    setDraft(profiles);
-    setKids(childrenList.join(', '));
-    setTheme(getThemePref());
-    setSaveError(null);
-    setConfirm(null);
-    setFamilyError(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+    const prev = base.current;
+    const liveKids = childrenList.join(', ');
+    setDraft((d) => {
+      const next = { padre: { ...d.padre }, madre: { ...d.madre } };
+      for (const who of ['padre', 'madre'])
+        for (const f of ['name', 'alias']) if (d[who][f] === prev.profiles[who][f]) next[who][f] = profiles[who][f];
+      return next;
+    });
+    setKids((k) => (k === prev.kids ? liveKids : k));
+    base.current = { profiles, kids: liveKids };
+  }, [profiles, childrenList]);
+  const shown = (who, field) => (who === myRole || (field === 'name' && otherEditable) ? draft[who][field] : profiles[who][field]);
+  const dirty =
+    draft[myRole].name !== profiles[myRole].name ||
+    draft[myRole].alias !== profiles[myRole].alias ||
+    (otherEditable && draft[otherRole].name !== profiles[otherRole].name) ||
+    kids !== childrenList.join(', ');
 
   const setField = (who, field, value) => setDraft((d) => ({ ...d, [who]: { ...d[who], [field]: value } }));
 
@@ -63,15 +75,22 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
     if (kidsParsed.error) return setSaveError(kidsParsed.error);
     setSaving(true);
     setSaveError(null);
-    const err =
-      (await setProfiles({
-        padre: { name: draft.padre.name.trim() || 'Padre', alias: draft.padre.alias.trim() },
-        madre: { name: draft.madre.name.trim() || 'Madre', alias: draft.madre.alias.trim() },
-      })) ?? (await setChildrenList(kidsParsed.list));
+    // Solo se mandan tus datos; los del otro van tal como están ahora en la base.
+    const fallback = { padre: 'Padre', madre: 'Madre' };
+    const next = {
+      [myRole]: { name: draft[myRole].name.trim() || fallback[myRole], alias: draft[myRole].alias.trim() },
+      [otherRole]: {
+        name: otherEditable ? draft[otherRole].name.trim() || fallback[otherRole] : profiles[otherRole].name,
+        alias: profiles[otherRole].alias,
+      },
+    };
+    const kidsChanged = kidsParsed.list.join(', ') !== childrenList.join(', ');
+    const err = (await setProfiles(next)) ?? (kidsChanged ? await setChildrenList(kidsParsed.list) : null);
     setSaving(false);
     if (err) return setSaveError(`No se pudo guardar: ${err}`);
+    setDraft(next);
+    setKids(kidsParsed.list.join(', '));
     onSaved?.('Ajustes guardados');
-    onClose();
   };
 
   const confirmFamily = async () => {
@@ -83,24 +102,16 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
     if (confirm === 'remove') {
       setConfirm(null);
       onSaved?.(`${other} ya no está en la familia`);
-      onClose();
     }
     // Al salir, la app vuelve sola a la pantalla de crear o unirse a una familia.
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="Ajustes"
-      footer={
-        <button onClick={save} className={btnPrimary} disabled={saving}>
-          {saving && <Loader2 size={16} className="animate-spin" />}
-          {saving ? 'Guardando…' : 'Guardar'}
-        </button>
-      }
-    >
-      <div className="space-y-5 pb-2">
+    <section aria-labelledby="ajustes-title">
+      <h2 id="ajustes-title" className="font-display mb-5 px-1 text-[28px] leading-none font-medium tracking-[-0.02em] text-slate-900">
+        Ajustes
+      </h2>
+      <div className="space-y-5 rounded-[20px] bg-white px-5 pt-5 pb-6 shadow-[0_1px_0_rgba(26,23,20,0.04),0_8px_24px_-12px_rgba(26,23,20,0.10)]">
         {/* Cada uno edita solo su CBU/Alias; el nombre del otro, solo hasta que se suma. */}
         {[myRole, myRole === 'padre' ? 'madre' : 'padre'].map((who) => {
           const legend = who === 'padre' ? 'Padre' : 'Madre';
@@ -109,7 +120,7 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
             <div key={who} className={mine ? '' : sectionCls}>
               <fieldset>
                 <legend className={headingCls}>
-                  {mine ? 'Vos' : draft[who].name || legend}
+                  {mine ? 'Vos' : shown(who, 'name') || legend}
                   <span className="ml-1.5 font-normal text-slate-500">{legend.toLowerCase()}</span>
                 </legend>
                 <div className="grid grid-cols-2 gap-2">
@@ -119,7 +130,7 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
                     </label>
                     <input
                       id={`name-${who}`}
-                      value={draft[who].name}
+                      value={shown(who, 'name')}
                       onChange={(e) => setField(who, 'name', e.target.value)}
                       aria-label={`Nombre (${legend})`}
                       maxLength={40}
@@ -133,7 +144,7 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
                     </label>
                     <input
                       id={`alias-${who}`}
-                      value={draft[who].alias}
+                      value={shown(who, 'alias')}
                       aria-label={`CBU o Alias (${legend})`}
                       maxLength={60}
                       disabled={!mine}
@@ -145,7 +156,7 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
                 </div>
                 {!mine && (
                   <p className="mt-2 text-[13px] text-slate-500">
-                    Su {partnerJoined ? 'nombre y su alias los cambia' : 'alias lo cambia'} {draft[who].name || legend}.
+                    Su {partnerJoined ? 'nombre y su alias los cambia' : 'alias lo cambia'} {shown(who, 'name') || legend}.
                   </p>
                 )}
               </fieldset>
@@ -169,6 +180,13 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
         </div>
 
         <FormError>{saveError}</FormError>
+        {/* El botón aparece recién cuando cambiaste algo (tema, compartir y demás se aplican al toque). */}
+        {(dirty || saving) && (
+          <button onClick={save} className={`animate-fade-in ${btnPrimary} w-full`} disabled={saving}>
+            {saving && <Loader2 size={16} className="animate-spin" />}
+            {saving ? 'Guardando…' : 'Guardar cambios'}
+          </button>
+        )}
 
         <div className={`${sectionCls} space-y-1`}>
           <button onClick={onShare} className="flex w-full items-center justify-between gap-3 py-2 text-left">
@@ -251,6 +269,6 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
           </button>
         </div>
       </div>
-    </Modal>
+    </section>
   );
 }

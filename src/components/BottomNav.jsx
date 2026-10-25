@@ -13,13 +13,13 @@ function NavItem({ icon: Icon, label, active, onClick }) {
   );
 }
 
-/** Barra inferior (mobile y tablet). En escritorio, estas opciones viven en el encabezado. */
-export default function BottomNav({ active, onBalance, onAnalysis, onAdd, onHistory, onSettings }) {
+/** Barra inferior (mobile y tablet): cada opción es su propia pantalla. En escritorio son pestañas. */
+export default function BottomNav({ active, onNavigate, onAdd }) {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200/80 bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
       <div className="mx-auto flex max-w-[480px] items-center px-2 pt-1.5 pb-1">
-        <NavItem icon={Wallet} label="Balance" active={active === 'balance'} onClick={onBalance} />
-        <NavItem icon={List} label="Gastos" active={active === 'historico'} onClick={onHistory} />
+        <NavItem icon={Wallet} label="Balance" active={active === 'balance'} onClick={() => onNavigate('balance')} />
+        <NavItem icon={List} label="Gastos" active={active === 'gastos'} onClick={() => onNavigate('gastos')} />
         <div className="flex flex-1 justify-center">
           <button
             onClick={onAdd}
@@ -29,8 +29,8 @@ export default function BottomNav({ active, onBalance, onAnalysis, onAdd, onHist
             <Plus size={22} strokeWidth={2.2} />
           </button>
         </div>
-        <NavItem icon={ChartPie} label="Análisis" active={active === 'analisis'} onClick={onAnalysis} />
-        <NavItem icon={Settings} label="Ajustes" onClick={onSettings} />
+        <NavItem icon={ChartPie} label="Análisis" active={active === 'analisis'} onClick={() => onNavigate('analisis')} />
+        <NavItem icon={Settings} label="Ajustes" active={active === 'ajustes'} onClick={() => onNavigate('ajustes')} />
       </div>
     </nav>
   );
