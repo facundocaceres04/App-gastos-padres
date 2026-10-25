@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { AlertCircle, ChartPie, CheckCircle2, CloudOff, Loader2, Percent, Settings, Trash2, UserPlus, Wallet, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { AlertCircle, Bell, ChartPie, CheckCircle2, CloudOff, Loader2, Lock, LockOpen, Percent, Settings, UserPlus, Wallet, X } from 'lucide-react';
 import { useExpenses } from '../context/ExpensesContext';
 import Header from '../components/Header';
 import HeroCard from '../components/HeroCard';
@@ -14,31 +14,107 @@ import SplitConfigModal from '../components/SplitConfigModal';
 import SettingsModal from '../components/SettingsModal';
 import ShareModal from '../components/ShareModal';
 import WhatsAppPreviewModal from '../components/WhatsAppPreviewModal';
+import ActivityModal from '../components/ActivityModal';
 import AnalysisView from '../components/analysis/AnalysisView';
-import Modal, { btnPrimary, btnSecondary } from '../components/Modal';
+import Modal, { FormError, btnPrimary, btnSecondary } from '../components/Modal';
 import RetryScreen from '../components/RetryScreen';
 import { useOnline } from '../utils/useOnline';
 import { buildWhatsAppSummary, copyToClipboard } from '../utils/whatsapp';
 import { formatMoney } from '../utils/formatters';
+import { describeActivity } from '../utils/activity';
+
+const seenKey = (householdId) => `cuentas-claras:actividad-vista:${householdId}`;
+/** Última vez que se abrió el historial. La primera visita cuenta como punto de partida. */
+const readSeen = (householdId) => {
+  const now = new Date().toISOString();
+  try {
+    const v = localStorage.getItem(seenKey(householdId));
+    if (v) return v;
+    localStorage.setItem(seenKey(householdId), now);
+  } catch {
+    /* sin storage: se toma la hora actual */
+  }
+  return now;
+};
 
 export default function Dashboard() {
-  const { loaded, loadError, reload, error, clearError, label, settlement, monthExpenses, profiles, otherRole, partnerJoined, deleteExpense } =
-    useExpenses();
+  const {
+    loaded,
+    loadError,
+    reload,
+    error,
+    clearError,
+    label,
+    settlement,
+    monthExpenses,
+    profiles,
+    otherRole,
+    partnerJoined,
+    deleteExpense,
+    undoDelete,
+    config,
+    toggleSettled,
+    householdId,
+    userId,
+    activity,
+    nameOf,
+    subscribeActivity,
+  } = useExpenses();
   const online = useOnline();
 
   // Un solo modal abierto a la vez
-  const [modal, setModal] = useState(null); // 'form' | 'breakdown' | 'bank' | 'split' | 'settings' | 'share' | 'whatsapp' | 'delete'
+  const [modal, setModal] = useState(null); // 'form' | 'breakdown' | 'bank' | 'split' | 'settings' | 'share' | 'whatsapp' | 'settle' | 'activity'
   const [editing, setEditing] = useState(null);
-  const [toDelete, setToDelete] = useState(null);
+  const [formNonce, setFormNonce] = useState(0); // remonta el formulario en cada apertura
   const [nav, setNav] = useState('balance');
-  const [toast, setToast] = useState(null);
+  // Toast: texto simple o { text, action: { label, onClick }, icon, ms }
+  const [toast, setToastRaw] = useState(null);
+  const setToast = (t) => setToastRaw(typeof t === 'string' ? { text: t } : t);
   const close = () => setModal(null);
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2600);
+    const t = setTimeout(() => setToastRaw(null), toast.ms ?? 2800);
     return () => clearTimeout(t);
   }, [toast]);
+
+  // Avisos en vivo de lo que hace el otro progenitor.
+  const describeRef = useRef(null);
+  describeRef.current = (entry) => describeActivity(entry, { nameOf, profiles }).text;
+  useEffect(
+    () => subscribeActivity((entry) => setToastRaw({ text: describeRef.current(entry), icon: 'bell', ms: 4500 })),
+    [subscribeActivity],
+  );
+
+  // Novedades del otro desde la última vez que se abrió el historial.
+  const [lastSeen, setLastSeen] = useState(() => readSeen(householdId));
+  const unread = activity.some((a) => a.actor !== userId && a.created_at > lastSeen);
+  const closeActivity = () => {
+    const now = new Date().toISOString();
+    try {
+      localStorage.setItem(seenKey(householdId), now);
+    } catch {
+      /* sin storage: el punto vuelve a aparecer al recargar */
+    }
+    setLastSeen(now);
+    close();
+  };
+
+  // Saldar / reabrir el mes, con confirmación explícita.
+  const [settling, setSettling] = useState(false);
+  const [settleError, setSettleError] = useState(null);
+  const askSettle = () => {
+    setSettleError(null);
+    setModal('settle');
+  };
+  const confirmSettle = async () => {
+    setSettling(true);
+    const err = await toggleSettled();
+    setSettling(false);
+    if (err) return setSettleError(err);
+    close();
+    setToast(config.settled ? `${label} reabierto` : `${label} marcado como saldado`);
+  };
 
   // Los errores no desaparecen solos tan rápido: hay que poder leerlos (o cerrarlos).
   useEffect(() => {
@@ -49,15 +125,23 @@ export default function Dashboard() {
 
   const openNew = () => {
     setEditing(null);
+    setFormNonce((n) => n + 1);
     setModal('form');
   };
   const openEdit = (expense) => {
     setEditing(expense);
+    setFormNonce((n) => n + 1);
     setModal('form');
   };
+  // Borrar no pide confirmación: se puede deshacer durante unos segundos (y queda en la actividad).
   const askDelete = (expense) => {
-    setToDelete(expense);
-    setModal('delete');
+    close();
+    deleteExpense(expense.id);
+    setToast({
+      text: `Borraste ${expense.concept}`,
+      ms: 6000,
+      action: { label: 'Deshacer', onClick: () => undoDelete(expense.id) && setToast('Listo, no se borró') },
+    });
   };
 
   const summary = () => buildWhatsAppSummary({ monthLabel: label, settlement, expenses: monthExpenses, profiles });
@@ -85,7 +169,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-dvh bg-surface">
-      <Header onAdd={openNew} onCustomSplit={() => setModal('split')} />
+      <Header onAdd={openNew} onChangeSplit={() => setModal('split')} onActivity={() => setModal('activity')} unread={unread} />
       {!online && (
         <div role="status" className="flex items-center justify-center gap-2 bg-amber-50 px-4 py-2 text-[12px] text-amber-800">
           <CloudOff size={14} /> Sin conexión. Los cambios no se van a guardar hasta que vuelvas a tener internet.
@@ -133,7 +217,7 @@ export default function Dashboard() {
                   </div>
                 </button>
               )}
-              <HeroCard onShowBreakdown={() => setModal('breakdown')} onShowBank={() => setModal('bank')} />
+              <HeroCard onShowBreakdown={() => setModal('breakdown')} onShowBank={() => setModal('bank')} onAskSettle={askSettle} />
               <MetricCards />
               <WhatsAppStrip
                 onCopy={() => copyText(summary(), 'Copiado para enviar por WhatsApp')}
@@ -154,7 +238,7 @@ export default function Dashboard() {
             </div>
 
             <div className="mt-3.5 lg:mt-0">
-              <ExpenseList onEdit={openEdit} onDelete={askDelete} onAdd={openNew} />
+              <ExpenseList onEdit={openEdit} onDelete={askDelete} onAdd={openNew} onReopen={askSettle} />
               <p className="pt-6 text-center text-[12px] text-slate-500">
                 {online ? 'Cuentas Claras · Los cambios se ven al instante en los dos teléfonos.' : 'Cuentas Claras · Sin conexión'}
               </p>
@@ -172,7 +256,7 @@ export default function Dashboard() {
         onSettings={() => setModal('settings')}
       />
 
-      <ExpenseFormModal open={modal === 'form'} onClose={close} expense={editing} onSaved={setToast} onDelete={askDelete} />
+      <ExpenseFormModal key={formNonce} open={modal === 'form'} onClose={close} expense={editing} onSaved={setToast} onDelete={askDelete} />
       <BreakdownModal open={modal === 'breakdown'} onClose={close} />
       <BankDetailsModal
         open={modal === 'bank'}
@@ -193,32 +277,39 @@ export default function Dashboard() {
         onCopy={() => copyText(summary(), 'Copiado para enviar por WhatsApp')}
       />
 
+      <ActivityModal open={modal === 'activity'} onClose={closeActivity} lastSeen={lastSeen} />
+
       <Modal
-        open={modal === 'delete' && !!toDelete}
+        open={modal === 'settle'}
         onClose={close}
-        title="¿Eliminar este gasto?"
-        icon={Trash2}
+        title={config.settled ? `¿Reabrir ${label}?` : `¿Marcar ${label} como saldado?`}
+        icon={config.settled ? LockOpen : Lock}
         footer={
           <>
             <button onClick={close} className={btnSecondary}>Cancelar</button>
-            <button
-              onClick={async () => {
-                close();
-                if (!(await deleteExpense(toDelete.id))) setToast('Gasto eliminado');
-              }}
-              className={btnPrimary}
-            >
-              Eliminar
+            <button onClick={confirmSettle} className={btnPrimary} disabled={settling}>
+              {settling && <Loader2 size={15} className="animate-spin" />}
+              {config.settled ? 'Reabrir' : 'Sí, está saldado'}
             </button>
           </>
         }
       >
-        {toDelete && (
-          <p className="text-[12px] text-slate-600">
-            <strong className="text-slate-900">{toDelete.concept}</strong> · {formatMoney(toDelete.amount)}. Se borra para los dos y el balance
-            se actualiza.
-          </p>
-        )}
+        <div className="space-y-2 pb-1 text-[13px] leading-relaxed text-slate-600">
+          {config.settled ? (
+            <p>Se van a poder volver a editar los gastos y el acuerdo de {label.split(' ')[0].toLowerCase()}. Queda registrado en la actividad.</p>
+          ) : (
+            <>
+              {!settlement.isBalanced && settlement.debtor && (
+                <p>
+                  Confirmá que {profiles[settlement.debtor].name} ya le transfirió{' '}
+                  <strong className="text-slate-900">{formatMoney(settlement.amountToTransfer)}</strong> a {profiles[settlement.creditor].name}.
+                </p>
+              )}
+              <p>Los gastos y el acuerdo del mes quedan bloqueados para los dos. Si hace falta corregir algo, se puede reabrir.</p>
+            </>
+          )}
+          <FormError>{settleError}</FormError>
+        </div>
       </Modal>
 
       {(error || toast) && (
@@ -229,10 +320,22 @@ export default function Dashboard() {
           >
             {error ? (
               <AlertCircle size={16} className="mt-0.5 shrink-0 text-amber-400" />
+            ) : toast.icon === 'bell' ? (
+              <Bell size={16} className="mt-0.5 shrink-0 text-sky-300 dark:text-sky-700" />
             ) : (
               <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-400" />
             )}
-            <span>{error ?? toast}</span>
+            <span>{error ?? toast.text}</span>
+            {!error && toast.action && (
+              <button
+                onClick={() => {
+                  toast.action.onClick();
+                }}
+                className="-my-1 ml-1 shrink-0 rounded-lg px-2 py-1 font-semibold text-emerald-300 hover:bg-white/10 dark:text-emerald-700"
+              >
+                {toast.action.label}
+              </button>
+            )}
             {error && (
               <button onClick={clearError} className="-my-1 -mr-2 ml-1 shrink-0 rounded-full p-1.5 text-slate-400 hover:text-white" aria-label="Cerrar">
                 <X size={14} />

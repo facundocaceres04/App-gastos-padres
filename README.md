@@ -14,6 +14,10 @@ Incluye:
   los últimos 6 meses (cuánto pagó cada uno), dona por categoría y gasto por hijo/a.
 - **Modo oscuro** (claro / oscuro / sistema), guardado en el dispositivo.
 - Resumen para WhatsApp, datos para transferir y estado "Saldado" por mes.
+- **Confianza entre los dos**: quién cargó o editó cada gasto (lo registra la base, no se puede
+  falsificar); historial de actividad que nadie puede editar ni borrar; aviso en vivo cuando el otro
+  cambia algo; saldar o reabrir un mes pide confirmación y un mes saldado queda bloqueado; cada uno
+  edita solo su propio CBU/Alias; borrar se puede deshacer durante unos segundos.
 
 Ideas de análisis y modo oscuro tomadas de [Hormigah](https://github.com/Jaolmos/hormigah-expense-tracker).
 
@@ -32,6 +36,16 @@ npm run dev                      # http://localhost:5173
   `expenses` y `month_configs` (acuerdo % y estado "Saldado" por mes).
 - Cada usuario solo puede leer y escribir los datos de su propia familia (RLS).
 - `create_household(...)` y `join_household(code)` son las únicas vías para crear o unirse a una familia.
+- `003_trust.sql`: triggers de autoría y bloqueo de meses saldados, CBU/Alias propio y tabla
+  `activity` (append-only, escrita solo por triggers).
+- Los cambios de esquema se aplican a mano (no hay Supabase CLI vinculado): ejecutar el `.sql` contra
+  `POSTGRES_URL_NON_POOLING` de `.env.local`.
+
+## Tests
+
+```bash
+npm test   # Vitest: cálculo de cierre, montos en formato argentino, fechas, análisis, historial
+```
 - Para que el otro progenitor pueda registrarse sin recibir un email, en Supabase:
   Authentication → Sign In / Providers → Email → desactivar **Confirm email**.
 

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Loader2, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Loader2, Lock, Trash2 } from 'lucide-react';
 import Modal, { FormError, btnPrimary, btnSecondary, inputCls, labelCls } from './Modal';
 import { useExpenses } from '../context/ExpensesContext';
 import { CATEGORIES, CONCEPT_SUGGESTIONS } from '../data/categories';
 import { amountToInput, parseAmount, todayISO } from '../utils/formatters';
+import { relativeTime } from '../utils/activity';
 
 const MAX_CONCEPT = 120;
 
@@ -21,19 +22,15 @@ function emptyForm(monthKeyStr) {
 
 /** Alta y edición de gastos. `expense` presente = modo edición. */
 export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDelete }) {
-  const { addExpense, updateExpense, profiles, childrenList, key } = useExpenses();
-  const [form, setForm] = useState(() => emptyForm(key));
+  const { addExpense, updateExpense, profiles, childrenList, key, config, nameOf, label } = useExpenses();
+  // Un gasto de un mes saldado se puede ver, pero no modificar (la base también lo impide).
+  const locked = Boolean(expense) && config.settled;
+  // El componente se monta de nuevo cada vez que se abre (ver `key` en Dashboard),
+  // así que el estado inicial ya es el correcto: nunca se ve, ni por un instante, el gasto anterior.
+  const [form, setForm] = useState(() => (expense ? { ...expense, amount: amountToInput(expense.amount) } : emptyForm(key)));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
-
-  useEffect(() => {
-    if (!open) return;
-    setForm(expense ? { ...expense, amount: amountToInput(expense.amount) } : emptyForm(key));
-    setErrors({});
-    setSaveError(null);
-    setSaving(false);
-  }, [open, expense, key]);
 
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }));
 
@@ -78,8 +75,13 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
     <Modal
       open={open}
       onClose={onClose}
-      title={expense ? 'Editar gasto' : 'Nuevo gasto común'}
+      title={locked ? 'Gasto' : expense ? 'Editar gasto' : 'Nuevo gasto común'}
       footer={
+        locked ? (
+          <button type="button" onClick={onClose} className={btnSecondary}>
+            Cerrar
+          </button>
+        ) : (
         <>
           {expense ? (
             <button type="button" onClick={() => onDelete(expense)} className={`${btnSecondary} flex-none px-3`} aria-label="Eliminar gasto">
@@ -94,9 +96,16 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
             {saving ? 'Guardando…' : expense ? 'Guardar cambios' : 'Guardar gasto'}
           </button>
         </>
+        )
       }
     >
       <form id="expense-form" onSubmit={submit} className="space-y-3.5" noValidate>
+        {locked && (
+          <p className="flex items-center gap-2 rounded-xl bg-sage-50 p-3 text-[13px] text-sage-700">
+            <Lock size={15} className="shrink-0" /> {label} está saldado. Para modificar este gasto, primero reabrí el mes.
+          </p>
+        )}
+        <fieldset disabled={locked} className="min-w-0 space-y-3.5">
         <div>
           <label className={labelCls} htmlFor="concept">Concepto</label>
           <input
@@ -194,6 +203,13 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
             </select>
           </div>
         </div>
+        </fieldset>
+        {expense?.createdBy && (
+          <p className="text-[12px] text-slate-500">
+            Cargado por {nameOf(expense.createdBy)} · {relativeTime(expense.createdAt)}
+            {expense.updatedBy && <> · editado por {nameOf(expense.updatedBy)} {relativeTime(expense.updatedAt)}</>}
+          </p>
+        )}
         <FormError>{saveError}</FormError>
       </form>
     </Modal>

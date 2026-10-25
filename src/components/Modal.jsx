@@ -96,7 +96,7 @@ export const btnSecondary =
   'flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-3 text-[13px] font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-60';
 export const labelCls = 'mb-1 block text-[11px] font-semibold tracking-wider text-slate-500 uppercase';
 export const inputCls =
-  'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[14px] text-slate-800 placeholder:text-slate-400 focus:border-brand-600 focus:ring-3 focus:ring-brand-600/15 focus:outline-none';
+  'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[14px] text-slate-800 placeholder:text-slate-400 focus:border-brand-600 focus:ring-3 focus:ring-brand-600/15 focus:outline-none disabled:bg-slate-50 disabled:text-slate-500';
 
 /** Mensaje de error dentro de un formulario o modal (no desaparece solo). */
 export function FormError({ children }) {

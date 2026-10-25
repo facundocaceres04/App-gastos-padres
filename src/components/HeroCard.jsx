@@ -1,27 +1,31 @@
-import { ArrowRight, Check, CheckCircle2, CheckCheck, Info, Landmark, Inbox } from 'lucide-react';
+import { ArrowRight, Check, CheckCheck, Info, Landmark, Inbox, LockOpen } from 'lucide-react';
 import { useExpenses } from '../context/ExpensesContext';
 import { formatMoney, initial } from '../utils/formatters';
 import { StatusBadge } from './Header';
 
 /** Balance mensual: transferencia sugerida + barra proporcional de aportes. */
-export default function HeroCard({ onShowBreakdown, onShowBank }) {
-  const { settlement: s, profiles, config, toggleSettled, monthExpenses } = useExpenses();
+export default function HeroCard({ onShowBreakdown, onShowBank, onAskSettle }) {
+  const { settlement: s, profiles, config, monthExpenses, nameOf } = useExpenses();
   const isEmpty = monthExpenses.length === 0;
   const sharePadre = s.total > 0 ? Math.round((s.paidFather / s.total) * 100) : s.pctFather;
   const shareMadre = 100 - sharePadre;
 
   return (
     <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-      <div className="mb-2 flex items-center justify-between text-[11px] font-medium text-slate-500">
-        <span className="flex items-center gap-2">
-          <span className="flex items-center gap-1 text-[10px] font-semibold tracking-wider text-brand-600 uppercase">
+      <div className="mb-2 flex items-center justify-between gap-2 text-[11px] font-medium text-slate-500">
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="flex items-center gap-1 text-[11px] font-semibold tracking-wider whitespace-nowrap text-brand-600 uppercase">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-600" />
             Balance mensual
           </span>
-          <StatusBadge settled={config.settled} />
+          <StatusBadge settled={config.settled} by={config.settledBy ? nameOf(config.settledBy) : null} at={config.settledAt} />
         </span>
-        <button onClick={onShowBreakdown} className="flex items-center gap-0.5 text-[11px] text-slate-500 transition-colors hover:text-slate-800">
-          Cómo se calculó <Info size={13} />
+        <button
+          onClick={onShowBreakdown}
+          aria-label="Cómo se calculó"
+          className="-mr-1 flex h-8 shrink-0 items-center gap-1 rounded-lg px-1 text-[12px] text-slate-500 transition-colors hover:text-slate-800"
+        >
+          <span className="hidden min-[400px]:inline">Cómo se calculó</span> <Info size={15} />
         </button>
       </div>
 
@@ -41,7 +45,7 @@ export default function HeroCard({ onShowBreakdown, onShowBank }) {
         </div>
       ) : (
         <div className="pt-1 pb-3">
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-surface p-3">
+          <div className="flex flex-col gap-2 rounded-xl border border-slate-100 bg-surface p-3 min-[360px]:flex-row min-[360px]:items-center min-[360px]:justify-between min-[360px]:gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
               <div
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${
@@ -61,7 +65,7 @@ export default function HeroCard({ onShowBreakdown, onShowBank }) {
                 </div>
               </div>
             </div>
-            <div className="shrink-0 text-right">
+            <div className="shrink-0 min-[360px]:text-right">
               <div className="font-display text-[19px] font-bold tracking-tight text-slate-900 tabular-nums sm:text-[22px]">
                 {formatMoney(s.amountToTransfer)}
               </div>
@@ -76,7 +80,7 @@ export default function HeroCard({ onShowBreakdown, onShowBank }) {
           <button
             onClick={onShowBank}
             disabled={s.isBalanced}
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3 py-2 text-[12px] font-semibold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-[0.98] disabled:opacity-40"
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3 py-2.5 text-[13px] font-semibold text-white shadow-xs transition-all hover:bg-slate-800 active:scale-[0.98] disabled:opacity-40"
           >
             <Landmark size={15} className="shrink-0" />
             <span className="whitespace-nowrap">
@@ -84,15 +88,11 @@ export default function HeroCard({ onShowBreakdown, onShowBank }) {
             </span>
           </button>
           <button
-            onClick={toggleSettled}
-            className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-[12px] transition-all ${
-              config.settled
-                ? 'border-emerald-200 bg-emerald-50 font-semibold text-emerald-700'
-                : 'border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50'
-            }`}
+            onClick={onAskSettle}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[13px] font-medium text-slate-700 transition-all hover:bg-slate-50"
           >
-            {config.settled ? <CheckCircle2 size={15} /> : <Check size={15} />}
-            <span className="whitespace-nowrap">{config.settled ? 'Saldado' : 'Marcar saldado'}</span>
+            {config.settled ? <LockOpen size={15} /> : <Check size={15} />}
+            <span className="whitespace-nowrap">{config.settled ? 'Reabrir mes' : 'Marcar saldado'}</span>
           </button>
         </div>
       )}

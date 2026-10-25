@@ -13,7 +13,7 @@ const THEMES = [
 
 /** Ajustes de familia: nombres, CBU/Alias, hijos, compartir y cerrar sesión. */
 export default function SettingsModal({ open, onClose, onSaved, onShare }) {
-  const { profiles, setProfiles, childrenList, setChildrenList, myRole, inviteCode } = useExpenses();
+  const { profiles, setProfiles, childrenList, setChildrenList, myRole, inviteCode, partnerJoined } = useExpenses();
   const { user, signOut } = useAuth();
   const [draft, setDraft] = useState(profiles);
   const [kids, setKids] = useState(childrenList.join(', '));
@@ -105,6 +105,7 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
             <legend className={labelCls}>
               {legend} {who === myRole && <span className="normal-case text-brand-600">(vos)</span>}
             </legend>
+            {/* Cada uno edita solo su CBU/Alias; el nombre del otro, solo hasta que se suma. */}
             <div className="grid grid-cols-2 gap-2">
               <input
                 value={draft[who].name}
@@ -112,17 +113,22 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
                 placeholder="Nombre"
                 aria-label={`Nombre (${legend})`}
                 maxLength={40}
+                disabled={who !== myRole && partnerJoined}
                 className={inputCls}
               />
               <input
                 value={draft[who].alias}
                 aria-label={`CBU o Alias (${legend})`}
                 maxLength={40}
+                disabled={who !== myRole}
                 onChange={(e) => setField(who, 'alias', e.target.value)}
                 placeholder="CBU o Alias"
                 className={`${inputCls} font-mono text-[12px]`}
               />
             </div>
+            {who !== myRole && (
+              <p className="mt-1 text-[11px] text-slate-500">Solo {draft[who].name || legend} puede cambiar su CBU/Alias{partnerJoined ? ' y su nombre' : ''}.</p>
+            )}
           </fieldset>
         ))}
         <div>

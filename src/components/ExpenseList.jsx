@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
-import { Pencil, Plus, Receipt, Search, Trash2, X } from 'lucide-react';
+import { Lock, Pencil, Plus, Receipt, Search, Trash2, X } from 'lucide-react';
 import { useExpenses } from '../context/ExpensesContext';
 import { getCategory } from '../data/categories';
 import { formatMoney, groupLabel } from '../utils/formatters';
 
 /** Feed de gastos agrupado por fecha, con filtro por pagador y búsqueda. */
-export default function ExpenseList({ onEdit, onDelete, onAdd }) {
-  const { monthExpenses, profiles } = useExpenses();
+export default function ExpenseList({ onEdit, onDelete, onAdd, onReopen }) {
+  const { monthExpenses, profiles, userId, nameOf, config, label } = useExpenses();
+  const locked = config.settled;
   const [payer, setPayer] = useState('todos');
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -67,6 +68,17 @@ export default function ExpenseList({ onEdit, onDelete, onAdd }) {
         </div>
       </div>
 
+      {locked && monthExpenses.length > 0 && (
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-sage-100 bg-sage-50 px-3 py-2 text-[12px] text-sage-700">
+          <span className="flex items-center gap-1.5">
+            <Lock size={13} /> {label} está saldado: sus gastos son de solo lectura.
+          </span>
+          <button onClick={onReopen} className="shrink-0 rounded-lg px-2 py-1 font-semibold hover:bg-sage-100">
+            Reabrir
+          </button>
+        </div>
+      )}
+
       {searchOpen && (
         <div className="animate-fade-in relative">
           <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" />
@@ -119,15 +131,21 @@ export default function ExpenseList({ onEdit, onDelete, onAdd }) {
                             <cat.icon size={17} />
                           </div>
                           <div className="min-w-0">
-                            <h4 className="truncate text-[13px] leading-tight font-semibold text-slate-900">{e.concept}</h4>
-                            <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-500">
+                            <h4 className="truncate text-[14px] leading-tight font-semibold text-slate-900">{e.concept}</h4>
+                            <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-slate-500">
                               {e.child && (
                                 <>
-                                  <span className="rounded bg-slate-100 px-1.5 text-[10px] font-medium text-slate-600">{e.child}</span>
+                                  <span className="rounded bg-slate-100 px-1.5 text-[11px] font-medium text-slate-600">{e.child}</span>
                                   <span>•</span>
                                 </>
                               )}
                               <span className="truncate">{cat.label}</span>
+                              {e.createdBy && e.createdBy !== userId && (
+                                <>
+                                  <span>•</span>
+                                  <span className="shrink-0">cargó {nameOf(e.createdBy)}</span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -146,7 +164,7 @@ export default function ExpenseList({ onEdit, onDelete, onAdd }) {
                         <button onClick={() => onEdit(e)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label={`Editar ${e.concept}`}>
                           <Pencil size={14} />
                         </button>
-                        <button onClick={() => onDelete(e)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label={`Eliminar ${e.concept}`}>
+                        <button onClick={() => onDelete(e)} disabled={locked} className="rounded-lg p-1.5 disabled:opacity-30 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label={`Eliminar ${e.concept}`}>
                           <Trash2 size={14} />
                         </button>
                       </div>

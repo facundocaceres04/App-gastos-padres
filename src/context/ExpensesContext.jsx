@@ -5,6 +5,8 @@ import { monthKey, monthLabel, todayISO, uid } from '../utils/formatters';
 
 const ExpensesContext = createContext(null);
 const PAGE = 1000; // límite por request de Supabase
+const UNDO_MS = 6000; // tiempo para deshacer un borrado antes de enviarlo a la base
+const ACTIVITY_LIMIT = 80;
 
 // ─── Mapeo entre filas de la base y el modelo de la app ──────────────────────
 const fromExpenseRow = (r) => ({
@@ -15,6 +17,10 @@ const fromExpenseRow = (r) => ({
   child: r.child ?? '',
   category: r.category,
   date: r.date,
+  createdBy: r.created_by,
+  createdAt: r.created_at,
+  updatedBy: r.updated_by,
+  updatedAt: r.updated_at,
 });
 const toExpenseRow = (e) => ({
   concept: e.concept,
@@ -24,7 +30,14 @@ const toExpenseRow = (e) => ({
   category: e.category,
   date: e.date,
 });
-const fromConfigRow = (r) => ({ fatherPct: r.father_pct, settled: r.settled, settledAt: r.settled_at });
+const fromConfigRow = (r) => ({
+  fatherPct: r.father_pct,
+  settled: r.settled,
+  settledAt: r.settled_at,
+  settledBy: r.settled_by,
+  updatedBy: r.updated_by,
+  updatedAt: r.updated_at,
+});
 const CONFIG_COLUMNS = { fatherPct: 'father_pct', settled: 'settled', settledAt: 'settled_at' };
 
 /** Trae todos los gastos de la familia, paginando de a 1000. */
@@ -54,6 +67,7 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
   const [members, setMembers] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [monthConfig, setMonthConfig] = useState({});
+  const [activity, setActivity] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [error, setError] = useState(null);
@@ -68,21 +82,26 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
   const reqId = useRef(0);
   const writes = useRef({ pending: 0, version: 0 });
   const scheduleRef = useRef(() => {});
+  // Borrados en espera (para poder deshacer): id → { timer, expense }
+  const pendingDeletes = useRef(new Map());
+  // Quienes quieren enterarse de la actividad del otro (toasts)
+  const activityListeners = useRef(new Set());
   const reload = useCallback(async () => {
     const seq = ++reqId.current;
     const writeVersion = writes.current.version;
-    const [h, m, e, c] = await Promise.all([
+    const [h, m, e, c, a] = await Promise.all([
       supabase.from('households').select('*').eq('id', householdId).single(),
       supabase.from('household_members').select('user_id, role').eq('household_id', householdId),
       fetchAllExpenses(householdId),
       supabase.from('month_configs').select('*').eq('household_id', householdId),
+      supabase.from('activity').select('*').eq('household_id', householdId).order('id', { ascending: false }).limit(ACTIVITY_LIMIT),
     ]);
     if (seq !== reqId.current) return;
     if (writes.current.pending > 0 || writes.current.version !== writeVersion) {
       scheduleRef.current();
       return;
     }
-    const failed = [h, m, e, c].find((r) => r.error);
+    const failed = [h, m, e, c, a].find((r) => r.error);
     if (failed) {
       setLoadError(friendlyError(failed.error));
       return;
@@ -90,8 +109,9 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
     setLoadError(null);
     setHousehold(h.data);
     setMembers(m.data);
-    setExpenses(e.data.map(fromExpenseRow));
+    setExpenses(e.data.filter((x) => !pendingDeletes.current.has(x.id)).map(fromExpenseRow));
     setMonthConfig(Object.fromEntries(c.data.map((r) => [r.month_key, fromConfigRow(r)])));
+    setActivity(a.data);
     setLoaded(true);
   }, [householdId]);
 
@@ -112,6 +132,10 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
       .on('postgres_changes', { event: '*', schema: 'public', table: 'month_configs', filter }, schedule)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'household_members', filter }, schedule)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'households', filter: `id=eq.${householdId}` }, schedule)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity', filter }, ({ new: entry }) => {
+        setActivity((xs) => (xs.some((x) => x.id === entry.id) ? xs : [entry, ...xs].slice(0, ACTIVITY_LIMIT)));
+        if (entry.actor !== userId) activityListeners.current.forEach((fn) => fn(entry));
+      })
       .subscribe((status) => {
         // Al (re)conectarse recargamos por si se perdieron eventos mientras no había conexión.
         if (status === 'SUBSCRIBED') schedule();
@@ -119,13 +143,18 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
     const onFocus = () => document.visibilityState === 'visible' && schedule();
     document.addEventListener('visibilitychange', onFocus);
     window.addEventListener('online', schedule);
+    // Si se cierra la pestaña con un borrado pendiente, se envía en ese momento.
+    const flushDeletes = () => pendingDeletes.current.forEach((_, id) => flushDeleteRef.current(id));
+    window.addEventListener('pagehide', flushDeletes);
     return () => {
       clearTimeout(timer.current);
+      flushDeletes(); // p. ej. al cerrar sesión con un borrado pendiente
+      window.removeEventListener('pagehide', flushDeletes);
       supabase.removeChannel(channel);
       document.removeEventListener('visibilitychange', onFocus);
       window.removeEventListener('online', schedule);
     };
-  }, [householdId, reload]);
+  }, [householdId, reload, userId]);
 
   /**
    * Ejecuta una escritura. Si falla, deshace el cambio optimista con `rollback`
@@ -195,7 +224,10 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
     const prevConfigs = monthConfig;
     const exists = Boolean(monthConfig[key]);
     const next = { ...config, ...patch };
-    setMonthConfig((m) => ({ ...m, [key]: { fatherPct: next.fatherPct, settled: next.settled, settledAt: next.settledAt } }));
+    setMonthConfig((m) => ({
+      ...m,
+      [key]: { ...m[key], fatherPct: next.fatherPct, settled: next.settled, settledAt: next.settledAt, settledBy: next.settled ? userId : null },
+    }));
     const cols = Object.fromEntries(Object.entries(patch).map(([k, v]) => [CONFIG_COLUMNS[k], v]));
     const request = exists
       ? supabase.from('month_configs').update(cols).eq('household_id', householdId).eq('month_key', key)
@@ -211,6 +243,25 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
 
   const clearError = useCallback(() => setError(null), []);
 
+  /** Nombre de un usuario de la familia (por su rol), o "Alguien" si ya no está. */
+  const nameOf = useCallback(
+    (uidOrNull) => {
+      const member = members.find((m) => m.user_id === uidOrNull);
+      return member ? profiles[member.role].name : 'Alguien';
+    },
+    [members, profiles],
+  );
+
+  /** Envía a la base un borrado que estaba esperando el "Deshacer". */
+  const flushDeleteRef = useRef(() => {});
+  flushDeleteRef.current = (id) => {
+    const pending = pendingDeletes.current.get(id);
+    if (!pending) return Promise.resolve(null);
+    clearTimeout(pending.timer);
+    pendingDeletes.current.delete(id);
+    return commit(supabase.from('expenses').delete().eq('id', id), () => setExpenses((xs) => [pending.expense, ...xs]));
+  };
+
   const value = {
     loaded,
     loadError,
@@ -220,6 +271,14 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
 
     // familia
     householdId,
+    userId,
+    nameOf,
+    activity,
+    /** Suscribe a la actividad del otro progenitor (llega por Realtime). Devuelve cómo desuscribirse. */
+    subscribeActivity: (fn) => {
+      activityListeners.current.add(fn);
+      return () => activityListeners.current.delete(fn);
+    },
     inviteCode: household?.invite_code ?? '',
     myRole,
     otherRole: myRole === 'padre' ? 'madre' : 'padre',
@@ -273,10 +332,24 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
         setExpenses((xs) => xs.map((e) => (e.id === id ? before : e))),
       );
     },
+    /**
+     * Borra con posibilidad de deshacer: se oculta al instante y recién se envía a la base
+     * después de unos segundos (o al cerrar la pestaña).
+     */
     deleteExpense: (id) => {
-      const before = expenses.find((e) => e.id === id);
+      const expense = expenses.find((e) => e.id === id);
+      if (!expense) return;
       setExpenses((xs) => xs.filter((e) => e.id !== id));
-      return commit(supabase.from('expenses').delete().eq('id', id), () => setExpenses((xs) => [before, ...xs]));
+      const timer = setTimeout(() => flushDeleteRef.current(id), UNDO_MS);
+      pendingDeletes.current.set(id, { timer, expense });
+    },
+    undoDelete: (id) => {
+      const pending = pendingDeletes.current.get(id);
+      if (!pending) return false;
+      clearTimeout(pending.timer);
+      pendingDeletes.current.delete(id);
+      setExpenses((xs) => [pending.expense, ...xs]);
+      return true;
     },
   };
 
