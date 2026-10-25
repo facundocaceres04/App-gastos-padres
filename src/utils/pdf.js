@@ -2,6 +2,8 @@ import { jsPDF } from 'jspdf';
 import { autoTable } from 'jspdf-autotable';
 import { getCategory } from '../data/categories';
 import { MONTHS, formatMoney } from './formatters';
+import { countable } from './calculator';
+import { NO_FILTER, filterExpenses, filterLabel, isFiltered } from './period';
 
 // Paleta del PDF: tinta sobre blanco (pensado también para imprimir).
 const INK = [26, 23, 20];
@@ -50,7 +52,20 @@ export function balanceLines(report, profiles) {
 }
 
 /** Nombre de archivo: cuentas-claras_2026-05-01_a_2026-10-25.pdf */
-export const pdfFileName = (r) => `cuentas-claras_${r.desde}_a_${r.hasta}.pdf`;
+const slug = (t) =>
+  t
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+const catLabel = (id) => getCategory(id).label;
+
+/** cuentas-claras_2026-05-01_a_2026-10-25.pdf; con filtros: …_pago-laura_educacion.pdf */
+export const pdfFileName = ({ report: r, filter = NO_FILTER, profiles }) => {
+  const extra = isFiltered(filter) ? `_${filterLabel(filter, profiles, catLabel).split(' · ').map(slug).join('_')}` : '';
+  return `cuentas-claras_${r.desde}_a_${r.hasta}${extra}.pdf`;
+};
 
 /**
  * Arma el PDF del período y lo devuelve como Blob.
@@ -61,7 +76,11 @@ export const pdfFileName = (r) => `cuentas-claras_${r.desde}_a_${r.hasta}.pdf`;
  * @param {string[]} p.childrenList
  * @param {string} p.generatedBy nombre de quien lo genera
  */
-export async function buildPeriodPdf({ report: r, profiles, rangeText, childrenList, generatedBy, now = new Date() }) {
+export async function buildPeriodPdf({ report: r, profiles, rangeText, childrenList, generatedBy, filter = NO_FILTER, now = new Date() }) {
+  // Los filtros de la lista solo cambian la tabla de gastos: el balance siempre es de todo el período.
+  const filtered = isFiltered(filter);
+  const fLabel = filterLabel(filter, profiles, catLabel);
+  const rows = filterExpenses(r.gastos, filter);
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
@@ -94,6 +113,11 @@ export async function buildPeriodPdf({ report: r, profiles, rangeText, childrenL
     .setTextColor(...MUTED);
   const kids = childrenList.length ? `${list(childrenList)} · ` : '';
   doc.text(`${kids}${profiles.padre.name} y ${profiles.madre.name} · del ${shortDate(r.desde)} al ${shortDate(r.hasta)}`, M, y);
+  if (filtered) {
+    y += 5.5;
+    doc.setTextColor(...INK).text(`Detalle filtrado: ${fLabel}. El resumen y el balance son de todo el período.`, M, y);
+    y -= 0.5;
+  }
 
   // Totales
   y += 12;
@@ -229,23 +253,35 @@ export async function buildPeriodPdf({ report: r, profiles, rangeText, childrenL
   }
 
   table(
-    `Gastos del período (${r.gastos.length})`,
+    filtered ? `Gastos: ${fLabel} (${rows.length})` : `Gastos del período (${rows.length})`,
     ['Fecha', 'Concepto', 'Categoría', 'Hijo/a', 'Pagó', R('Monto')],
-    r.gastos.map((e) => [
-      shortDate(e.date),
-      e.reviewStatus === 'observado' ? `${e.concept} (observado, no cuenta)` : e.concept,
-      getCategory(e.category).label,
-      e.child || '—',
-      profiles[e.paidBy].name,
-      formatMoney(e.amount),
-    ]),
+    rows.length
+      ? rows.map((e) => [
+          shortDate(e.date),
+          e.reviewStatus === 'observado' ? `${e.concept} (observado, no cuenta)` : e.concept,
+          getCategory(e.category).label,
+          e.child || '—',
+          profiles[e.paidBy].name,
+          formatMoney(e.amount),
+        ])
+      : [[{ content: 'No hay gastos con este filtro en el período.', colSpan: 6, styles: { textColor: MUTED } }]],
     {
       columnStyles: { 0: { cellWidth: 22 }, 5: { halign: 'right', cellWidth: 26 } },
+      // Con filtro, el total de lo filtrado (los observados no suman, como en la app).
+      ...(filtered && rows.length
+        ? {
+            foot: [
+              [{ content: 'Total del filtro', colSpan: 5 }, R(formatMoney(countable(rows).reduce((a, e) => a + Number(e.amount || 0), 0)))],
+            ],
+            footStyles: { fontStyle: 'bold', textColor: INK, lineWidth: { top: 0.3 }, lineColor: RULE },
+            showFoot: 'lastPage',
+          }
+        : {}),
       didParseCell: (d) => {
-        if (d.section === 'body' && r.gastos[d.row.index]?.reviewStatus === 'observado') d.cell.styles.textColor = MUTED;
+        if (d.section !== 'body' || !rows.length) return;
+        if (rows[d.row.index]?.reviewStatus === 'observado') d.cell.styles.textColor = MUTED;
         // Color de quién pagó, como en la app
-        if (d.section === 'body' && d.column.index === 4)
-          d.cell.styles.textColor = r.gastos[d.row.index].paidBy === 'padre' ? PADRE : MADRE;
+        if (d.column.index === 4) d.cell.styles.textColor = rows[d.row.index].paidBy === 'padre' ? PADRE : MADRE;
       },
     },
   );

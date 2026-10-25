@@ -17,6 +17,7 @@ export default function ExportPdf({ getInput }) {
   const [file, setFile] = useState(null); // File listo
   const [error, setError] = useState(null);
   const [url, setUrl] = useState(null);
+  const [note, setNote] = useState(null); // filtro de la lista aplicado, si hay
 
   useEffect(() => () => url && URL.revokeObjectURL(url), [url]);
 
@@ -27,7 +28,8 @@ export default function ExportPdf({ getInput }) {
       const { buildPeriodPdf, pdfFileName } = await import('../../utils/pdf');
       const input = getInput();
       const blob = await buildPeriodPdf(input);
-      const f = new File([blob], pdfFileName(input.report), { type: 'application/pdf' });
+      const f = new File([blob], pdfFileName(input), { type: 'application/pdf' });
+      setNote(input.filterNote ?? null);
       setUrl(URL.createObjectURL(f));
       setFile(f);
     } catch (e) {
@@ -92,7 +94,7 @@ export default function ExportPdf({ getInput }) {
           <div className="pb-1">
             <p className="text-[15px] font-medium break-all text-slate-900">{file.name}</p>
             <p className="mt-1 text-[14px] text-slate-500">
-              {kb(file.size)} · resumen, mes a mes, categorías y todos los gastos del período.{' '}
+              {kb(file.size)} · resumen, mes a mes, categorías y {note ? `los gastos filtrados (${note})` : 'todos los gastos del período'}.{' '}
               <a href={url} target="_blank" rel="noreferrer" className="text-slate-900 underline underline-offset-[3px]">
                 Verlo
               </a>

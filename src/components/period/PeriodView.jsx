@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useExpenses } from '../../context/ExpensesContext';
-import { DEFAULT_PRESET, PRESETS, periodReport, presetRange, rangeError, rangeLabel } from '../../utils/period';
+import { DEFAULT_PRESET, NO_FILTER, PRESETS, filterLabel, periodReport, presetRange, rangeError, rangeLabel } from '../../utils/period';
+import { getCategory } from '../../data/categories';
 import PeriodPicker from './PeriodPicker';
 import PeriodSummary from './PeriodSummary';
 import PeriodExpenses from './PeriodExpenses';
@@ -49,6 +50,9 @@ function writePeriod(v) {
 export default function PeriodView({ onEdit }) {
   const { expenses, configFor, profiles, childrenList, myRole } = useExpenses();
   const [period, setPeriod] = useState(readPeriod);
+  // Filtros de la lista (quién pagó, categoría): se reinician al cambiar de período y el PDF los respeta.
+  const [listFilter, setListFilter] = useState(NO_FILTER);
+  useEffect(() => setListFilter(NO_FILTER), [period.desde, period.hasta]);
 
   useEffect(() => writePeriod(period), [period]);
 
@@ -70,6 +74,8 @@ export default function PeriodView({ onEdit }) {
                 // En el PDF el período va siempre con año: el archivo puede leerse mucho después.
                 rangeText: rangeLabel(period.desde, period.hasta, new Date(0)),
                 generatedBy: profiles[myRole].name,
+                filter: listFilter,
+                filterNote: filterLabel(listFilter, profiles, (id) => getCategory(id).label),
               })}
             />
           )}
@@ -109,7 +115,14 @@ export default function PeriodView({ onEdit }) {
             {(childrenList.length > 1 || report.porHijo.some((h) => h.name !== 'Sin asignar')) && (
               <ChildBars data={report.porHijo} total={report.total} subtitle="Lo que se gastó en cada uno en el período" />
             )}
-            <PeriodExpenses key={`${period.desde}-${period.hasta}`} expenses={report.gastos} profiles={profiles} onEdit={onEdit} />
+            <PeriodExpenses
+              key={`${period.desde}-${period.hasta}`}
+              expenses={report.gastos}
+              profiles={profiles}
+              onEdit={onEdit}
+              filter={listFilter}
+              onFilterChange={setListFilter}
+            />
           </div>
         </div>
       )}

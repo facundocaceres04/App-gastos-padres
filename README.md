@@ -16,7 +16,8 @@ Incluye:
   lista de gastos del rango con filtros. El período queda en la dirección (`#analisis?p=12m`).
   Lógica en `src/utils/period.js` (con tests).
   **Exportar PDF**: arma en el celular un reporte del período (resumen, mes a mes, categorías,
-  hijos y todos los gastos) para compartir o descargar; jsPDF se baja recién al exportar.
+  hijos y los gastos) para compartir o descargar; jsPDF se baja recién al exportar. La tabla de gastos
+  respeta los filtros de la lista (quién pagó, categoría); el resumen y el balance son siempre del período.
 - **Modo oscuro** (claro / oscuro / sistema), guardado en el dispositivo.
 - Resumen para WhatsApp, datos para transferir y estado "Saldado" por mes.
 - **Confianza entre los dos**: quién cargó o editó cada gasto (lo registra la base, no se puede

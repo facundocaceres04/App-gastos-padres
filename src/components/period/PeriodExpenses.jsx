@@ -3,20 +3,22 @@ import { Paperclip } from 'lucide-react';
 import { CATEGORIES, getCategory } from '../../data/categories';
 import { MONTHS, formatMoney, initial } from '../../utils/formatters';
 import { countable } from '../../utils/calculator';
+import { filterExpenses } from '../../utils/period';
 
 const PAGE = 40;
 const SHORT = MONTHS.map((m) => m.slice(0, 3).toLowerCase());
 
-/** Gastos del rango, del más nuevo al más viejo, agrupados por mes; filtros por quién pagó y categoría. */
-export default function PeriodExpenses({ expenses, profiles, onEdit }) {
-  const [payer, setPayer] = useState('todos');
-  const [category, setCategory] = useState('');
+/**
+ * Gastos del rango, del más nuevo al más viejo, agrupados por mes; filtros por quién pagó y categoría.
+ * El filtro lo guarda la pantalla (`filter` / `onFilterChange`) porque el PDF también lo usa.
+ */
+export default function PeriodExpenses({ expenses, profiles, onEdit, filter, onFilterChange }) {
+  const { payer, category } = filter;
+  const setPayer = (v) => onFilterChange({ ...filter, payer: v });
+  const setCategory = (v) => onFilterChange({ ...filter, category: v });
   const [limit, setLimit] = useState(PAGE);
 
-  const filtered = useMemo(
-    () => expenses.filter((e) => (payer === 'todos' || e.paidBy === payer) && (!category || e.category === category)),
-    [expenses, payer, category],
-  );
+  const filtered = useMemo(() => filterExpenses(expenses, filter), [expenses, filter]);
   const filteredTotal = countable(filtered).reduce((a, e) => a + Number(e.amount || 0), 0);
   const shown = filtered.slice(0, limit);
   const groups = [];

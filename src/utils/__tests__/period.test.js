@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { monthsBetween, periodReport, presetRange, rangeError, rangeLabel } from '../period';
+import { NO_FILTER, filterExpenses, filterLabel, isFiltered, monthsBetween, periodReport, presetRange, rangeError, rangeLabel } from '../period';
 
 const today = new Date(2026, 9, 25); // 25/10/2026
 
@@ -78,5 +78,27 @@ describe('periodReport', () => {
     expect(v.total).toBe(0);
     expect(v.gastos).toEqual([]);
     expect(v.porMes).toHaveLength(2);
+  });
+});
+
+describe('filtros de la lista', () => {
+  const gastos = [
+    { paidBy: 'padre', category: 'salud' },
+    { paidBy: 'madre', category: 'salud' },
+    { paidBy: 'madre', category: 'educacion' },
+  ];
+  const profiles = { padre: { name: 'Martín' }, madre: { name: 'Laura' } };
+  const cat = (id) => ({ salud: 'Salud', educacion: 'Educación' })[id];
+  it('sin filtro deja todo', () => {
+    expect(isFiltered(NO_FILTER)).toBe(false);
+    expect(filterExpenses(gastos, NO_FILTER)).toHaveLength(3);
+    expect(filterLabel(NO_FILTER, profiles, cat)).toBeNull();
+  });
+  it('filtra por quién pagó y por categoría, y lo describe', () => {
+    const f = { payer: 'madre', category: 'salud' };
+    expect(isFiltered(f)).toBe(true);
+    expect(filterExpenses(gastos, f)).toEqual([gastos[1]]);
+    expect(filterLabel(f, profiles, cat)).toBe('pagó Laura · Salud');
+    expect(filterLabel({ payer: 'todos', category: 'educacion' }, profiles, cat)).toBe('Educación');
   });
 });

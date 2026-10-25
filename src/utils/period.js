@@ -127,3 +127,17 @@ export function periodReport(expenses, { desde, hasta }, configFor, childrenList
     gastos: [...inRange].sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt ?? '').localeCompare(a.createdAt ?? '')),
   };
 }
+
+/** Filtros de la lista de gastos del período (los usa la pantalla y el PDF). */
+export const NO_FILTER = { payer: 'todos', category: '' };
+export const isFiltered = (f) => f.payer !== 'todos' || Boolean(f.category);
+export const filterExpenses = (gastos, f) =>
+  gastos.filter((e) => (f.payer === 'todos' || e.paidBy === f.payer) && (!f.category || e.category === f.category));
+
+/** "pagó Laura · Educación" (o null sin filtros). */
+export function filterLabel(f, profiles, categoryLabel) {
+  const parts = [];
+  if (f.payer !== 'todos') parts.push(`pagó ${profiles[f.payer].name}`);
+  if (f.category) parts.push(categoryLabel(f.category));
+  return parts.length ? parts.join(' · ') : null;
+}
