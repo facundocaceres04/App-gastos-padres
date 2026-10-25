@@ -10,8 +10,11 @@ Producción: https://app-gastos-padres.vercel.app (cada push a `main` se publica
 
 Incluye:
 - **Balance mensual** con el reparto acordado (50/50, 60/40, personalizado) y quién le transfiere a quién.
-- **Análisis**: total vs mes anterior, promedio, proyección anual, acumulado del año, evolución de
-  los últimos 6 meses (cuánto pagó cada uno), dona por categoría y gasto por hijo/a.
+- **Análisis por período**: presets (este mes, 3/6/12 meses, este año) o rango personalizado;
+  total, cuánto puso cada uno, balance del período calculado mes por mes con el reparto de cada mes
+  y lo que queda pendiente sin contar los meses saldados; evolución mensual, categorías, hijos y la
+  lista de gastos del rango con filtros. El período queda en la dirección (`#analisis?p=12m`).
+  Lógica en `src/utils/period.js` (con tests).
 - **Modo oscuro** (claro / oscuro / sistema), guardado en el dispositivo.
 - Resumen para WhatsApp, datos para transferir y estado "Saldado" por mes.
 - **Confianza entre los dos**: quién cargó o editó cada gasto (lo registra la base, no se puede

@@ -10,7 +10,7 @@ const C = 2 * Math.PI * R;
 const GAP = 2; // separación de 2px (en unidades del viewBox) entre segmentos
 
 /** Dona de gastos por categoría (≤ 6 segmentos) + leyenda con montos y %. */
-export default function CategoryDonut({ data, total }) {
+export default function CategoryDonut({ data, total, subtitle = 'En qué se fue la plata este mes' }) {
   const [active, setActive] = useState(null);
   const current = data.find((d) => d.id === active);
 
@@ -23,7 +23,7 @@ export default function CategoryDonut({ data, total }) {
   });
 
   return (
-    <ChartCard title="Por categoría" subtitle="En qué se fue la plata este mes">
+    <ChartCard title="Por categoría" subtitle={subtitle}>
       {data.length === 0 ? (
         <Empty />
       ) : (

@@ -5,8 +5,14 @@ import { compactMoney, niceTicks } from '../../utils/analytics';
 
 const PLOT_H = 150; // alto del área de barras en px
 
-/** Columnas apiladas Padre/Madre de los últimos meses, con tooltip y vista de tabla. */
-export default function MonthlyBars({ series, profiles, selectedKey }) {
+/** Columnas apiladas Padre/Madre por mes, con tooltip y vista de tabla. Con muchos meses, ralea las etiquetas. */
+export default function MonthlyBars({
+  series,
+  profiles,
+  selectedKey,
+  title = 'Los últimos seis meses',
+  subtitle = 'Cuánto puso cada uno, mes a mes',
+}) {
   const [hover, setHover] = useState(null); // { i, x, y }
   const [asTable, setAsTable] = useState(false);
   const boxRef = useRef(null);
@@ -16,6 +22,10 @@ export default function MonthlyBars({ series, profiles, selectedKey }) {
   const top = ticks[ticks.length - 1] || 1;
   const sumPadre = series.reduce((a, m) => a + m.padre, 0);
   const sumMadre = series.reduce((a, m) => a + m.madre, 0);
+  // Con muchos meses no entran todas las etiquetas: montos solo hasta 8 barras, meses de a uno cada dos.
+  const showValues = series.length <= 8;
+  const labelEvery = series.length > 12 ? 2 : 1;
+  const xLabel = (m, i) => (i % labelEvery ? '' : m.key.endsWith('-01') && i > 0 ? `${m.short} ’${m.key.slice(2, 4)}` : m.short);
 
   const show = (i, e) => {
     const box = boxRef.current.getBoundingClientRect();
@@ -36,7 +46,7 @@ export default function MonthlyBars({ series, profiles, selectedKey }) {
   );
 
   return (
-    <ChartCard title="Los últimos seis meses" subtitle="Cuánto puso cada uno, mes a mes" action={toggle}>
+    <ChartCard title={title} subtitle={subtitle} action={toggle}>
       <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-slate-600">
         <Legend color="var(--color-padre)" label={profiles.padre.name} value={sumPadre} />
         <Legend color="var(--color-madre)" label={profiles.madre.name} value={sumMadre} />
@@ -102,7 +112,7 @@ export default function MonthlyBars({ series, profiles, selectedKey }) {
                       onClick={(e) => (hover?.i === i ? setHover(null) : show(i, e))}
                       className="flex h-full flex-1 flex-col items-center justify-end"
                     >
-                      {m.total > 0 && (
+                      {showValues && m.total > 0 && (
                         <span className={`mb-1 text-[10px] font-semibold tabular-nums ${m.key === selectedKey ? 'text-slate-900' : 'text-slate-500'}`}>
                           {compactMoney(m.total)}
                         </span>
@@ -120,12 +130,12 @@ export default function MonthlyBars({ series, profiles, selectedKey }) {
 
               {/* Eje X */}
               <div className="mt-1.5 flex justify-around gap-1">
-                {series.map((m) => (
+                {series.map((m, i) => (
                   <span
                     key={m.key}
-                    className={`flex-1 text-center text-[11px] ${m.key === selectedKey ? 'font-semibold text-slate-900' : 'text-slate-500'}`}
+                    className={`flex-1 text-center text-[11px] whitespace-nowrap ${m.key === selectedKey ? 'font-semibold text-slate-900' : 'text-slate-500'}`}
                   >
-                    {m.short}
+                    {xLabel(m, i)}
                   </span>
                 ))}
               </div>

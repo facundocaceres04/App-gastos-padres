@@ -5,7 +5,7 @@ import ReceiptField from './ReceiptField';
 import ReviewPanel from './ReviewPanel';
 import { useExpenses } from '../context/ExpensesContext';
 import { CATEGORIES, CONCEPT_SUGGESTIONS } from '../data/categories';
-import { amountToInput, parseAmount, todayISO } from '../utils/formatters';
+import { MONTHS, amountToInput, parseAmount, todayISO } from '../utils/formatters';
 import { relativeTime } from '../utils/activity';
 
 const MAX_CONCEPT = 120;
@@ -24,11 +24,13 @@ function emptyForm(monthKeyStr) {
 
 /** Alta y edición de gastos. `expense` presente = modo edición. */
 export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDelete }) {
-  const { addExpense, updateExpense, profiles, childrenList, key, config, nameOf, label, expenses } = useExpenses();
+  const { addExpense, updateExpense, profiles, childrenList, key, configFor, nameOf, expenses } = useExpenses();
   // Versión "en vivo" del gasto (por si el otro lo revisa mientras está abierto).
   const live = expense ? (expenses.find((e) => e.id === expense.id) ?? expense) : null;
   // Un gasto de un mes saldado se puede ver, pero no modificar (la base también lo impide).
-  const locked = Boolean(expense) && config.settled;
+  // Se mira el mes del gasto (no el del encabezado): desde Análisis se pueden abrir gastos de otros meses.
+  const expenseMonth = expense?.date.slice(0, 7);
+  const locked = Boolean(expense) && configFor(expenseMonth).settled;
   // El componente se monta de nuevo cada vez que se abre (ver `key` en Dashboard),
   // así que el estado inicial ya es el correcto: nunca se ve, ni por un instante, el gasto anterior.
   const [form, setForm] = useState(() => (expense ? { ...expense, amount: amountToInput(expense.amount) } : emptyForm(key)));
@@ -104,7 +106,7 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
       <form id="expense-form" onSubmit={submit} className="space-y-3.5" noValidate>
         {locked && (
           <p className="flex items-start gap-2 text-[14px] leading-relaxed text-slate-600">
-            <Lock size={15} className="mt-[3px] shrink-0" /> {label.split(' ')[0]} está saldado. Para modificar este gasto, primero reabrí el mes.
+            <Lock size={15} className="mt-[3px] shrink-0" /> {expense && MONTHS[Number(expenseMonth.slice(5, 7)) - 1]} está saldado. Para modificar este gasto, primero reabrí el mes.
           </p>
         )}
         <fieldset disabled={locked} className="min-w-0 space-y-3.5">

@@ -4,12 +4,12 @@ import ChartCard from './ChartCard';
 import { formatMoney } from '../../utils/formatters';
 
 /** Barras horizontales: cuánto se gastó por hijo/a en el mes (una sola serie). */
-export default function ChildBars({ data, total }) {
+export default function ChildBars({ data, total, subtitle = 'Lo que se gastó en cada uno este mes' }) {
   const [active, setActive] = useState(null);
   const max = Math.max(...data.map((d) => d.amount), 0);
 
   return (
-    <ChartCard title="Para quién" subtitle="Lo que se gastó en cada uno este mes">
+    <ChartCard title="Para quién" subtitle={subtitle}>
       {data.length === 0 ? (
         <div className="flex flex-col items-center py-6 text-center">
           <Baby size={26} className="text-slate-300" />

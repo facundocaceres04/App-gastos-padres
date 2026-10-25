@@ -28,12 +28,12 @@ const SECTIONS = [
   ['ajustes', 'Ajustes'],
 ];
 const sectionFromHash = () => {
-  const h = window.location.hash.slice(1);
+  const h = window.location.hash.slice(1).split('?')[0];
   return SECTIONS.some(([id]) => id === h) ? h : 'balance';
 };
 
 // Los gráficos se bajan recién cuando se abre Análisis.
-const AnalysisView = lazy(() => import('../components/analysis/AnalysisView'));
+const PeriodView = lazy(() => import('../components/period/PeriodView'));
 
 const seenKey = (householdId) => `cuentas-claras:actividad-vista:${householdId}`;
 /** Última vez que se abrió el historial. La primera visita cuenta como punto de partida. */
@@ -200,7 +200,12 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-dvh bg-surface">
-      <Header onAdd={openNew} onActivity={() => setModal('activity')} unread={unread} showMonth={section !== 'ajustes'} />
+      <Header
+        onAdd={openNew}
+        onActivity={() => setModal('activity')}
+        unread={unread}
+        showMonth={section !== 'ajustes' && section !== 'analisis'}
+      />
       {!online && (
         <div role="status" className="flex items-center justify-center gap-2 bg-amber-50 px-4 py-2 text-[13px] text-amber-800">
           <CloudOff size={14} /> Sin conexión: lo que cargues no se guarda hasta que vuelva internet.
@@ -228,12 +233,20 @@ export default function Dashboard() {
         {section === 'analisis' ? (
           <Suspense
             fallback={
-              <div className="flex justify-center py-16">
-                <Loader2 size={22} className="animate-spin text-slate-400" />
+              // Esqueleto con la forma de la pantalla mientras se baja Análisis (se carga aparte).
+              <div className="mx-auto max-w-xl animate-pulse space-y-5" role="status" aria-label="Cargando análisis">
+                <div className="h-7 w-32 rounded-md bg-slate-200" />
+                <div className="flex gap-2">
+                  {[72, 76, 76, 84].map((w) => (
+                    <div key={w} className="h-9 rounded-full bg-slate-200" style={{ width: w }} />
+                  ))}
+                </div>
+                <div className="h-64 rounded-[20px] bg-slate-200/70" />
+                <div className="h-48 rounded-[20px] bg-slate-200/50" />
               </div>
             }
           >
-            <AnalysisView />
+            <PeriodView onEdit={openEdit} />
           </Suspense>
         ) : (
           <div className="mx-auto max-w-xl">
