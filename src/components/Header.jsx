@@ -23,7 +23,7 @@ export default function Header({ onAdd, onChangeSplit, onActivity, unread }) {
     'relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-xs transition hover:text-slate-900';
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-surface/90 px-4 pt-3 pb-2.5 backdrop-blur-md lg:px-8">
+    <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-surface/90 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-2.5 backdrop-blur-md lg:px-8">
       <div className="mx-auto max-w-5xl">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2.5">

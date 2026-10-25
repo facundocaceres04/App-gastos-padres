@@ -83,7 +83,9 @@ export default function Modal({ open, onClose, title, icon: Icon, children, foot
             <X size={18} />
           </button>
         </div>
-        <div className="overflow-y-auto px-5 pt-4 pb-1">{children}</div>
+        <div className={`overflow-y-auto overscroll-contain px-5 pt-4 ${footer ? 'pb-1' : 'pb-[max(1.25rem,env(safe-area-inset-bottom))]'}`}>
+          {children}
+        </div>
         {footer && <div className="flex gap-2 px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]">{footer}</div>}
       </div>
     </div>

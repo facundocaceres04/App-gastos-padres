@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { AlertCircle, Bell, ChartPie, CheckCircle2, CloudOff, Loader2, Lock, LockOpen, Percent, Settings, UserPlus, Wallet, X } from 'lucide-react';
 import { useExpenses } from '../context/ExpensesContext';
 import Header from '../components/Header';
@@ -15,13 +15,16 @@ import SettingsModal from '../components/SettingsModal';
 import ShareModal from '../components/ShareModal';
 import WhatsAppPreviewModal from '../components/WhatsAppPreviewModal';
 import ActivityModal from '../components/ActivityModal';
-import AnalysisView from '../components/analysis/AnalysisView';
 import Modal, { FormError, btnPrimary, btnSecondary } from '../components/Modal';
 import RetryScreen from '../components/RetryScreen';
+import InstallHint from '../components/InstallHint';
 import { useOnline } from '../utils/useOnline';
 import { buildWhatsAppSummary, copyToClipboard } from '../utils/whatsapp';
 import { formatMoney } from '../utils/formatters';
 import { describeActivity } from '../utils/activity';
+
+// Los gráficos se bajan recién cuando se abre Análisis.
+const AnalysisView = lazy(() => import('../components/analysis/AnalysisView'));
 
 const seenKey = (householdId) => `cuentas-claras:actividad-vista:${householdId}`;
 /** Última vez que se abrió el historial. La primera visita cuenta como punto de partida. */
@@ -130,6 +133,15 @@ export default function Dashboard() {
     setFormNonce((n) => n + 1);
     setModal('form');
   };
+  // Atajo del ícono de la app instalada ("Agregar gasto"): /?accion=gasto
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('accion') !== 'gasto') return;
+    window.history.replaceState(null, '', window.location.pathname);
+    openNew();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const openEdit = (expense) => {
     setEditing(expense);
     setFormNonce((n) => n + 1);
@@ -178,7 +190,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <main className="mx-auto max-w-[440px] px-4 pt-3 pb-28 sm:max-w-xl lg:max-w-5xl lg:px-8 lg:pt-5 lg:pb-12">
+      <main className="mx-auto max-w-[440px] px-4 pt-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:max-w-xl lg:max-w-5xl lg:px-8 lg:pt-5 lg:pb-12">
         {/* Pestañas de escritorio (en mobile se usa la barra inferior) */}
         <div className="mb-5 hidden lg:flex">
           <div className="flex rounded-xl bg-slate-200/60 p-0.5">
@@ -201,10 +213,19 @@ export default function Dashboard() {
         </div>
 
         {view === 'analisis' ? (
-          <AnalysisView />
+          <Suspense
+            fallback={
+              <div className="flex justify-center py-16">
+                <Loader2 size={22} className="animate-spin text-slate-400" />
+              </div>
+            }
+          >
+            <AnalysisView />
+          </Suspense>
         ) : (
           <div className="lg:grid lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-start lg:gap-6">
             <div className="space-y-3.5 lg:sticky lg:top-32">
+              {partnerJoined && <InstallHint onInstalled={setToast} />}
               {!partnerJoined && (
                 <button
                   onClick={() => setModal('share')}
@@ -321,7 +342,7 @@ export default function Dashboard() {
       </Modal>
 
       {(error || toast) && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex justify-center px-4 lg:bottom-8">
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-[60] flex justify-center px-4 lg:bottom-8">
           <div
             role={error ? 'alert' : 'status'}
             className="animate-toast-in pointer-events-auto flex max-w-md items-start gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-[13px] font-medium text-white shadow-lg"

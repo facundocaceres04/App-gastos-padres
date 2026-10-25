@@ -1,7 +1,16 @@
+import { useEffect } from 'react';
 import { RefreshCw, WifiOff } from 'lucide-react';
+
+const AUTO_RETRY_MS = 8000;
 
 /** Error de carga con opción de reintentar (sin conexión, servidor caído, etc.). */
 export default function RetryScreen({ message, onRetry }) {
+  // Reintenta sola mientras la app está a la vista: vuelve apenas hay internet, sin tocar nada.
+  useEffect(() => {
+    const t = setInterval(() => document.visibilityState === 'visible' && onRetry(), AUTO_RETRY_MS);
+    return () => clearInterval(t);
+  }, [onRetry]);
+
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-surface px-6 text-center">
       <WifiOff size={28} className="text-slate-400" />
@@ -12,6 +21,7 @@ export default function RetryScreen({ message, onRetry }) {
       >
         <RefreshCw size={15} /> Reintentar
       </button>
+      <p className="text-[12px] text-slate-500">Se vuelve a intentar sola en unos segundos.</p>
     </div>
   );
 }

@@ -149,6 +149,7 @@ export default function OnboardingScreen() {
                   placeholder="ABC123"
                   autoCapitalize="characters"
                   autoComplete="off"
+                  data-keep-size
                   className={`${inputCls} text-center font-mono text-[20px] font-bold tracking-[0.3em]`}
                 />
                 <p className="mt-1.5 text-[11px] text-slate-500">

@@ -5,6 +5,7 @@ import { useExpenses } from '../context/ExpensesContext';
 import { useAuth } from '../context/AuthContext';
 import { getThemePref, setThemePref } from '../utils/theme';
 import { parseChildren } from '../utils/formatters';
+import InstallHint from './InstallHint';
 
 const THEMES = [
   ['claro', 'Claro', Sun],
@@ -110,6 +111,8 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
             ))}
           </div>
         </div>
+
+        <InstallHint variant="row" onInstalled={onSaved} />
 
         <button
           onClick={onShare}

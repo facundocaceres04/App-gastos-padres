@@ -99,6 +99,26 @@ html.dark {
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Sin la demora del doble toque para hacer zoom: los botones responden al instante. */
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  label,
+  [role='button'] {
+    touch-action: manipulation;
+  }
+  /* En pantallas táctiles, iOS hace zoom al enfocar un campo con letra de menos de 16px. */
+  @media (pointer: coarse) {
+    input:not([type='range']):not([type='checkbox']):not([type='radio']):not([type='file']):not([data-keep-size]),
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
   }
   html.theme-transition,
   html.theme-transition * {

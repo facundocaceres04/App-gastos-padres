@@ -1,24 +1,28 @@
+import { Suspense, lazy } from 'react';
 import { Loader2 } from 'lucide-react';
 import { isConfigured } from './lib/supabase';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ExpensesProvider } from './context/ExpensesContext';
-import AuthScreen from './screens/AuthScreen';
-import OnboardingScreen from './screens/OnboardingScreen';
-import Dashboard from './screens/Dashboard';
 import RetryScreen from './components/RetryScreen';
-import NewPasswordScreen from './screens/NewPasswordScreen';
+import UpdatePrompt from './components/UpdatePrompt';
+
+// Cada pantalla se baja cuando hace falta: quien ya tiene sesión no descarga el login, y al revés.
+const AuthScreen = lazy(() => import('./screens/AuthScreen'));
+const OnboardingScreen = lazy(() => import('./screens/OnboardingScreen'));
+const NewPasswordScreen = lazy(() => import('./screens/NewPasswordScreen'));
+const Dashboard = lazy(() => import('./screens/Dashboard'));
+
+const Spinner = () => (
+  <div className="flex min-h-dvh items-center justify-center bg-surface">
+    <Loader2 size={24} className="animate-spin text-slate-400" />
+  </div>
+);
 
 /** Sesión → familia → panel. */
 function Gate() {
   const { loading, user, membership, membershipError, retryMembership, refreshMembership, recovery } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-surface">
-        <Loader2 size={24} className="animate-spin text-slate-400" />
-      </div>
-    );
-  }
+  if (loading) return <Spinner />;
   if (!user) return <AuthScreen />;
   if (recovery) return <NewPasswordScreen />;
   if (membershipError) return <RetryScreen message={membershipError} onRetry={retryMembership} />;
@@ -41,7 +45,10 @@ export default function App() {
   }
   return (
     <AuthProvider>
-      <Gate />
+      <Suspense fallback={<Spinner />}>
+        <Gate />
+      </Suspense>
+      <UpdatePrompt />
     </AuthProvider>
   );
 }

@@ -30,6 +30,13 @@ Incluye:
   integrante o salir de la familia; "olvidé mi contraseña"; cabeceras de seguridad (CSP, anti-iframe)
   en `vercel.json`; límites de largo y valores válidos en la base.
 
+- **App instalable (PWA)**: se instala en el celular (Android con el botón "Instalar"; iPhone desde
+  Compartir → Agregar a inicio), abre al instante y sin internet muestra un aviso y se recupera sola.
+  Atajo "Agregar gasto" desde el ícono. Cuando se publica una versión nueva, la app ofrece "Actualizar".
+  Los datos nunca se guardan en caché: siempre se leen de Supabase.
+- **Pensada para el celular**: campos de 16px (el iPhone no hace zoom), respeta el notch y la barra de
+  inicio, el teclado no tapa el botón de guardar en Android, y el código se baja por partes.
+
 Ideas de análisis y modo oscuro tomadas de [Hormigah](https://github.com/Jaolmos/hormigah-expense-tracker).
 
 ## Desarrollo

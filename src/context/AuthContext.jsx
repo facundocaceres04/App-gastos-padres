@@ -28,11 +28,16 @@ export function AuthProvider({ children }) {
       setMembershipState({ userId: null, data: null, error: null });
       return;
     }
+    // Sin red, avisar al instante: la librería reintentaría ~7 s antes de fallar. navigator.onLine
+    // no alcanza (un Wi‑Fi sin internet dice "online"), por eso además se desactivan los reintentos;
+    // la pantalla de "Sin conexión" ya reintenta sola.
+    if (!navigator.onLine) throw new Error('Failed to fetch');
     const { data, error } = await supabase
       .from('household_members')
       .select('household_id, role')
       .eq('user_id', userId)
-      .maybeSingle();
+      .maybeSingle()
+      .retry(false);
     if (error) throw error;
     setMembershipState({ userId, data: data ?? null, error: null });
   }, [userId]);
@@ -46,12 +51,19 @@ export function AuthProvider({ children }) {
     loadMembership().catch((e) => setMembershipState({ userId: userId ?? null, data: undefined, error: friendlyError(e) }));
   }, [sessionReady, loadMembership, userId]);
 
-  // Al volver a la app se revisa si seguís en la familia (el otro te pudo haber quitado).
+  // Al volver a la app (o a tener internet) se revisa si seguís en la familia:
+  // el otro te pudo haber quitado, o la carga anterior falló por falta de conexión.
   useEffect(() => {
     if (!userId) return;
-    const onFocus = () => document.visibilityState === 'visible' && loadMembership().catch(() => {});
+    const recheck = () =>
+      loadMembership().catch((e) => setMembershipState((st) => (st.data === undefined ? { userId, data: undefined, error: friendlyError(e) } : st)));
+    const onFocus = () => document.visibilityState === 'visible' && recheck();
     document.addEventListener('visibilitychange', onFocus);
-    return () => document.removeEventListener('visibilitychange', onFocus);
+    window.addEventListener('online', recheck);
+    return () => {
+      document.removeEventListener('visibilitychange', onFocus);
+      window.removeEventListener('online', recheck);
+    };
   }, [userId, loadMembership]);
 
   // Mientras no se cargó la familia del usuario actual, se considera "cargando".
