@@ -1,7 +1,19 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { isAuthRetryableFetchError } from '@supabase/supabase-js';
 import { friendlyError, supabase } from '../lib/supabase';
+import { isStandalone } from '../utils/install';
 
 const AuthContext = createContext(null);
+
+/** Sesión que Supabase dejó guardada en el dispositivo (o null). */
+function storedSession() {
+  try {
+    const s = JSON.parse(localStorage.getItem(supabase.auth.storageKey) ?? 'null');
+    return s?.user && s.refresh_token ? s : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Sesión del usuario + familia (household) a la que pertenece. */
 export function AuthProvider({ children }) {
@@ -12,8 +24,19 @@ export function AuthProvider({ children }) {
   const [recovery, setRecovery] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    // Arranca al instante con la sesión guardada en el dispositivo, aunque no haya internet.
+    // Después se confirma con Supabase (que además renueva el token si venció).
+    const stored = storedSession();
+    if (stored) setSession(stored);
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (data.session) return setSession(data.session);
+      // Sin internet no se pudo renovar el token: eso no es cerrar sesión. La sesión sigue guardada y
+      // se renueva sola cuando vuelve la conexión; mientras tanto la app muestra "Sin conexión".
+      if (isAuthRetryableFetchError(error) && storedSession()) return;
+      setSession(null);
+    });
     const { data } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'INITIAL_SESSION') return; // lo resuelve getSession, arriba
       setSession(s);
       if (event === 'PASSWORD_RECOVERY') setRecovery(true);
       if (event === 'SIGNED_OUT') setRecovery(false);
@@ -22,6 +45,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   const userId = session?.user?.id;
+
+  // Con la app instalada, se pide que el celular no borre sus datos (la sesión) aunque le falte espacio.
+  // Instalada, Chrome y Safari lo conceden sin preguntar; en una pestaña común no se pide.
+  useEffect(() => {
+    if (userId && isStandalone()) navigator.storage?.persist?.().catch(() => {});
+  }, [userId]);
 
   const loadMembership = useCallback(async () => {
     if (!userId) {
