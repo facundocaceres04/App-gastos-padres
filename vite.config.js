@@ -41,6 +41,8 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+          // jsPDF trae módulos para convertir HTML a PDF que no usamos: no se guardan en el celular.
+          globIgnores: ['**/html2canvas*', '**/purify*', '**/index.es-*'],
           navigateFallback: 'index.html',
           cleanupOutdatedCaches: true,
           // Supabase (datos, login, comprobantes) nunca se cachea: siempre va a la red.

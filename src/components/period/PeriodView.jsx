@@ -4,6 +4,7 @@ import { DEFAULT_PRESET, PRESETS, periodReport, presetRange, rangeError, rangeLa
 import PeriodPicker from './PeriodPicker';
 import PeriodSummary from './PeriodSummary';
 import PeriodExpenses from './PeriodExpenses';
+import ExportPdf from './ExportPdf';
 import MonthlyBars from '../analysis/MonthlyBars';
 import CategoryDonut from '../analysis/CategoryDonut';
 import ChildBars from '../analysis/ChildBars';
@@ -46,7 +47,7 @@ function writePeriod(v) {
 
 /** Análisis por período: presets o rango a medida, totales, balance, gráficos y la lista de gastos. */
 export default function PeriodView({ onEdit }) {
-  const { expenses, configFor, profiles, childrenList } = useExpenses();
+  const { expenses, configFor, profiles, childrenList, myRole } = useExpenses();
   const [period, setPeriod] = useState(readPeriod);
 
   useEffect(() => writePeriod(period), [period]);
@@ -58,7 +59,21 @@ export default function PeriodView({ onEdit }) {
   return (
     <div className="mx-auto max-w-xl space-y-6 lg:max-w-5xl">
       <div>
-        <h2 className="font-display mb-4 px-1 text-[28px] leading-none font-medium tracking-[-0.02em] text-slate-900">Análisis</h2>
+        <div className="mb-4 flex items-center justify-between gap-3 px-1">
+          <h2 className="font-display text-[28px] leading-none font-medium tracking-[-0.02em] text-slate-900">Análisis</h2>
+          {!empty && (
+            <ExportPdf
+              getInput={() => ({
+                report,
+                profiles,
+                childrenList,
+                // En el PDF el período va siempre con año: el archivo puede leerse mucho después.
+                rangeText: rangeLabel(period.desde, period.hasta, new Date(0)),
+                generatedBy: profiles[myRole].name,
+              })}
+            />
+          )}
+        </div>
         <PeriodPicker value={period} onChange={setPeriod} onPreset={(id) => setPeriod({ preset: id, ...presetRange(id) })} />
       </div>
 
