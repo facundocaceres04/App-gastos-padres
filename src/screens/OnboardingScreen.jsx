@@ -71,7 +71,10 @@ export default function OnboardingScreen() {
     <div className="flex min-h-dvh flex-col bg-surface px-6 pt-[calc(env(safe-area-inset-top)+2rem)] pb-10 sm:items-center sm:justify-center">
       <div className="w-full max-w-sm">
         <div className="flex items-baseline justify-between gap-3">
-          <p className="font-display shrink-0 text-[19px] font-medium tracking-[-0.01em] whitespace-nowrap text-slate-900">Cuentas Claras</p>
+          <p className="font-display flex shrink-0 items-center gap-2.5 text-[19px] font-medium tracking-[-0.01em] whitespace-nowrap text-slate-900">
+            <img src="/logo-96.png" alt="" width="32" height="32" className="h-8 w-8 rounded-[9px]" />
+            Cuentas Claras
+          </p>
           <button onClick={signOut} className="min-w-0 truncate text-[13px] text-slate-500 hover:text-slate-900" title="Salir">
             {user?.email} · Salir
           </button>

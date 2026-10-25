@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'prompt', // la versión nueva se aplica cuando el usuario toca "Actualizar"
         injectRegister: false, // se registra desde UpdatePrompt.jsx
-        includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'theme-init.js'],
+        includeAssets: ['favicon-64.png', 'logo-96.png', 'apple-touch-icon.png', 'theme-init.js'],
         manifest: {
           id: '/',
           name: 'Cuentas Claras',

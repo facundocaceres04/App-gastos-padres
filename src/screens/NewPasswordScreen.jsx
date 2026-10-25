@@ -28,7 +28,10 @@ export default function NewPasswordScreen() {
   return (
     <div className="flex min-h-dvh flex-col bg-surface px-6 pt-[calc(env(safe-area-inset-top)+2rem)] pb-10 sm:items-center sm:justify-center">
       <div className="w-full max-w-sm">
-        <p className="font-display text-[19px] font-medium tracking-[-0.01em] text-slate-900">Cuentas Claras</p>
+        <p className="font-display flex items-center gap-2.5 text-[19px] font-medium tracking-[-0.01em] text-slate-900">
+          <img src="/logo-96.png" alt="" width="32" height="32" className="h-8 w-8 rounded-[9px]" />
+          Cuentas Claras
+        </p>
         <div className="mt-14 sm:mt-10">
           <h1 className="font-display text-[34px] leading-[1.1] font-medium tracking-[-0.02em] text-slate-900">Elegí una contraseña nueva</h1>
           <p className="mt-2 text-[16px] text-slate-600">Para {user?.email}</p>
