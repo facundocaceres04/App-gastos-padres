@@ -73,3 +73,11 @@ export function parseAmount(input) {
 
 /** 1500.5 → "1500,5" (para mostrar un monto en un campo editable). */
 export const amountToInput = (n) => (n == null ? '' : String(n).replace('.', ','));
+
+/** "Mateo, Sofía" → { list: ['Mateo', 'Sofía'] } o { error } si no respeta los límites de la base. */
+export function parseChildren(text) {
+  const list = text.split(',').map((k) => k.trim()).filter(Boolean);
+  if (list.length > 10) return { error: 'Se pueden cargar hasta 10 hijos/as' };
+  if (list.some((k) => k.length > 40)) return { error: 'Cada nombre puede tener hasta 40 letras' };
+  return { list };
+}

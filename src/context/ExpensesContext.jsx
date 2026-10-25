@@ -70,7 +70,7 @@ async function fetchAllExpenses(householdId) {
  * Las escrituras se aplican al instante en pantalla; si la base las rechaza (o no hay conexión)
  * se revierten y la función devuelve el mensaje de error. Los cambios del otro llegan por Realtime.
  */
-export function ExpensesProvider({ householdId, myRole, userId, children: node }) {
+export function ExpensesProvider({ householdId, myRole, userId, onMembershipLost, children: node }) {
   const [household, setHousehold] = useState(null);
   const [members, setMembers] = useState([]);
   const [expenses, setExpenses] = useState([]);
@@ -94,6 +94,8 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
   const pendingDeletes = useRef(new Map());
   // Quienes quieren enterarse de la actividad del otro (toasts)
   const activityListeners = useRef(new Set());
+  const lostRef = useRef(onMembershipLost);
+  lostRef.current = onMembershipLost;
   const reload = useCallback(async () => {
     const seq = ++reqId.current;
     const writeVersion = writes.current.version;
@@ -105,6 +107,11 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
       supabase.from('activity').select('*').eq('household_id', householdId).order('id', { ascending: false }).limit(ACTIVITY_LIMIT),
     ]);
     if (seq !== reqId.current) return;
+    // Ya no sos parte de la familia (saliste desde otro dispositivo o el otro te quitó).
+    if (h.error?.code === 'PGRST116' || (m.data && !m.data.some((x) => x.user_id === userId))) {
+      lostRef.current?.();
+      return;
+    }
     if (writes.current.pending > 0 || writes.current.version !== writeVersion) {
       scheduleRef.current();
       return;
@@ -121,7 +128,7 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
     setMonthConfig(Object.fromEntries(c.data.map((r) => [r.month_key, fromConfigRow(r)])));
     setActivity(a.data);
     setLoaded(true);
-  }, [householdId]);
+  }, [householdId, userId]);
 
   // Carga inicial + suscripción en tiempo real (recarga con debounce ante cualquier cambio).
   const timer = useRef(null);
@@ -306,6 +313,35 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
       return () => activityListeners.current.delete(fn);
     },
     inviteCode: household?.invite_code ?? '',
+    inviteExpiresAt: household?.invite_expires_at ?? null,
+    /** Código nuevo: el anterior deja de servir. Devuelve un mensaje de error o null. */
+    rotateInviteCode: async () => {
+      const { data, error: err } = await supabase.rpc('rotate_invite_code');
+      if (err) return friendlyError(err);
+      setHousehold(data);
+      return null;
+    },
+    /** Quita al otro integrante de la familia (los gastos quedan). */
+    removePartner: async () => {
+      const { error: err } = await supabase.rpc('remove_partner');
+      if (err) return friendlyError(err);
+      reload();
+      return null;
+    },
+    /** Salir de la familia. Si sos el último integrante, se borra todo, comprobantes incluidos. */
+    leaveHousehold: async () => {
+      if (members.length <= 1) {
+        const paths = expenses.map((e) => e.receiptPath).filter(Boolean);
+        for (let i = 0; i < paths.length; i += 100) {
+          const { error: err } = await supabase.storage.from(RECEIPTS).remove(paths.slice(i, i + 100));
+          if (err) return `No se pudieron borrar los comprobantes: ${friendlyError(err)}`;
+        }
+      }
+      const { error: err } = await supabase.rpc('leave_household');
+      if (err) return friendlyError(err);
+      lostRef.current?.();
+      return null;
+    },
     myRole,
     otherRole: myRole === 'padre' ? 'madre' : 'padre',
     partnerJoined: members.length >= 2,

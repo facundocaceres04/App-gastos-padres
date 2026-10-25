@@ -19,5 +19,7 @@ export function friendlyError(error) {
   if (/rate limit/i.test(msg)) return 'Demasiados intentos. Esperá unos minutos.';
   if (/Unable to validate email|invalid format/i.test(msg)) return 'El email no es válido';
   if (/Failed to fetch|NetworkError/i.test(msg)) return 'Sin conexión. Revisá tu internet.';
+  if (/violates check constraint/i.test(msg)) return 'Algún dato es demasiado largo o no es válido';
+  if (/New password should be different/i.test(msg)) return 'La contraseña nueva tiene que ser distinta de la anterior';
   return msg || 'Ocurrió un error inesperado';
 }

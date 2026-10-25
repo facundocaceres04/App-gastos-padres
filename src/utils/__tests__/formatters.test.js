@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { amountToInput, formatMoney, groupLabel, parseAmount } from '../formatters';
+import { amountToInput, formatMoney, groupLabel, parseAmount, parseChildren } from '../formatters';
 
 describe('parseAmount (formato argentino)', () => {
   it.each([
@@ -46,5 +46,15 @@ describe('groupLabel', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 10, 1, 9, 0)); // 1/11/2026
     expect(groupLabel('2026-10-31')).toBe('Ayer');
+  });
+});
+
+describe('parseChildren', () => {
+  it('separa por coma y limpia espacios', () => {
+    expect(parseChildren(' Mateo, Sofía ,, ')).toEqual({ list: ['Mateo', 'Sofía'] });
+  });
+  it('respeta los límites de la base', () => {
+    expect(parseChildren(Array(11).fill('A').join(',')).error).toMatch(/10/);
+    expect(parseChildren('x'.repeat(41)).error).toMatch(/40/);
   });
 });

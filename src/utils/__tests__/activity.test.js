@@ -41,6 +41,11 @@ describe('describeActivity', () => {
     expect(describeActivity({ kind: 'family_updated', actor: 'u2', data: { fields: ['madre_alias'] } }, ctx).text).toBe('Laura actualizó el CBU/Alias');
   });
 
+  it('salidas de la familia', () => {
+    expect(describeActivity({ kind: 'member_left', actor: 'u9', data: { role: 'padre' } }, ctx).text).toBe('Martín salió de la familia');
+    expect(describeActivity({ kind: 'member_removed', actor: 'u2', data: { role: 'padre' } }, ctx).text).toBe('Laura quitó a Martín de la familia');
+  });
+
   it('actor desconocido (cuenta borrada)', () => {
     expect(describeActivity({ kind: 'month_reopened', actor: null, data: { month: '2026-10' } }, ctx).text).toBe('Alguien reabrió Octubre 2026');
   });

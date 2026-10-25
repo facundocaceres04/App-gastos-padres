@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { KeyRound, Loader2, LogOut, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { friendlyError } from '../lib/supabase';
+import { parseChildren } from '../utils/formatters';
 import { inputCls, labelCls } from '../components/Modal';
 
 /** Primer ingreso: crear la familia (y obtener el código) o unirse con un código. */
@@ -34,12 +35,14 @@ export default function OnboardingScreen() {
   const create = (e) => {
     e.preventDefault();
     if (!myName.trim()) return setError('Ingresá tu nombre');
+    const kidsParsed = parseChildren(kids);
+    if (kidsParsed.error) return setError(kidsParsed.error);
     run(() =>
       createHousehold({
         role,
         myName: myName.trim(),
         otherName: otherName.trim(),
-        children: kids.split(',').map((k) => k.trim()).filter(Boolean),
+        children: kidsParsed.list,
       }),
     );
   };
@@ -107,7 +110,7 @@ export default function OnboardingScreen() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className={labelCls} htmlFor="my-name">Tu nombre</label>
-                  <input id="my-name" value={myName} onChange={(e) => setMyName(e.target.value)} placeholder="Martín" className={inputCls} />
+                  <input id="my-name" value={myName} onChange={(e) => setMyName(e.target.value)} maxLength={40} placeholder="Martín" className={inputCls} />
                 </div>
                 <div>
                   <label className={labelCls} htmlFor="other-name">{role === 'padre' ? 'La madre' : 'El padre'}</label>
@@ -115,6 +118,7 @@ export default function OnboardingScreen() {
                     id="other-name"
                     value={otherName}
                     onChange={(e) => setOtherName(e.target.value)}
+                    maxLength={40}
                     placeholder={role === 'padre' ? 'Laura' : 'Martín'}
                     className={inputCls}
                   />
@@ -122,7 +126,7 @@ export default function OnboardingScreen() {
               </div>
               <div>
                 <label className={labelCls} htmlFor="kids">Hijos/as (separados por coma)</label>
-                <input id="kids" value={kids} onChange={(e) => setKids(e.target.value)} placeholder="Mateo, Sofía" className={inputCls} />
+                <input id="kids" value={kids} onChange={(e) => setKids(e.target.value)} maxLength={300} placeholder="Mateo, Sofía" className={inputCls} />
               </div>
               {error && <p className="rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-800">{error}</p>}
               <button

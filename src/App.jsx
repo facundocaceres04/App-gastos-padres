@@ -6,10 +6,11 @@ import AuthScreen from './screens/AuthScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import Dashboard from './screens/Dashboard';
 import RetryScreen from './components/RetryScreen';
+import NewPasswordScreen from './screens/NewPasswordScreen';
 
 /** Sesión → familia → panel. */
 function Gate() {
-  const { loading, user, membership, membershipError, retryMembership } = useAuth();
+  const { loading, user, membership, membershipError, retryMembership, refreshMembership, recovery } = useAuth();
 
   if (loading) {
     return (
@@ -19,11 +20,12 @@ function Gate() {
     );
   }
   if (!user) return <AuthScreen />;
+  if (recovery) return <NewPasswordScreen />;
   if (membershipError) return <RetryScreen message={membershipError} onRetry={retryMembership} />;
   if (!membership) return <OnboardingScreen />;
 
   return (
-    <ExpensesProvider key={membership.household_id} householdId={membership.household_id} myRole={membership.role} userId={user.id}>
+    <ExpensesProvider key={membership.household_id} householdId={membership.household_id} myRole={membership.role} userId={user.id} onMembershipLost={refreshMembership}>
       <Dashboard />
     </ExpensesProvider>
   );

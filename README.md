@@ -25,6 +25,10 @@ Incluye:
   "pendiente".
 - **Saldo de meses anteriores**: lo que quedó sin saldar se arrastra y se muestra el total para quedar
   al día (también en el resumen de WhatsApp).
+- **Seguridad**: el código de invitación es aleatorio, vence a los 7 días y se puede renovar; tras 5
+  intentos fallidos (por usuario, o 20 por IP) se bloquea 15 minutos; se puede quitar al otro
+  integrante o salir de la familia; "olvidé mi contraseña"; cabeceras de seguridad (CSP, anti-iframe)
+  en `vercel.json`; límites de largo y valores válidos en la base.
 
 Ideas de análisis y modo oscuro tomadas de [Hormigah](https://github.com/Jaolmos/hormigah-expense-tracker).
 
@@ -47,6 +51,9 @@ npm run dev                      # http://localhost:5173
   `activity` (append-only, escrita solo por triggers).
 - `004_receipts_reviews.sql`: columnas de comprobante y revisión, `review_expense()` (solo el otro
   progenitor puede revisar), bucket privado `comprobantes` con políticas por familia.
+- `005_security.sql`: código con `gen_random_bytes` y vencimiento, `rotate_invite_code()`,
+  intentos fallidos en `join_attempts` (no accesible desde la app), `leave_household()`,
+  `remove_partner()` y restricciones `check` de largo/valores.
 - Los cambios de esquema se aplican a mano (no hay Supabase CLI vinculado): ejecutar el `.sql` contra
   `POSTGRES_URL_NON_POOLING` de `.env.local`.
 
@@ -57,6 +64,11 @@ npm test   # Vitest: cálculo de cierre, montos en formato argentino, fechas, an
 ```
 - Para que el otro progenitor pueda registrarse sin recibir un email, en Supabase:
   Authentication → Sign In / Providers → Email → desactivar **Confirm email**.
+- Para "olvidé mi contraseña", en Supabase → Authentication → URL Configuration: **Site URL**
+  `https://app-gastos-padres.vercel.app` y la misma URL en **Redirect URLs**. El servidor de email
+  que trae Supabase solo envía a miembros del equipo del proyecto y unos pocos por hora: para que le
+  llegue a cualquiera hay que configurar un SMTP propio (por ejemplo Resend) en Authentication → Emails.
+- La CSP de `vercel.json` incluye la URL del proyecto de Supabase: si cambia el proyecto, actualizarla.
 
 ## Estructura
 

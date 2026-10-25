@@ -70,6 +70,11 @@ export function describeActivity(entry, { nameOf, profiles }) {
     }
     case 'member_joined':
       return { tone: 'info', text: `${who} se sumó a la familia` };
+    // Quien salió o fue quitado ya no es integrante: se lo nombra por su rol.
+    case 'member_left':
+      return { tone: 'delete', text: `${payer(d.role)} salió de la familia` };
+    case 'member_removed':
+      return { tone: 'delete', text: `${who} quitó a ${payer(d.role)} de la familia`, detail: 'Se generó un código de invitación nuevo' };
     default:
       return { tone: 'info', text: `${who} hizo un cambio` };
   }
