@@ -313,7 +313,6 @@ export function ExpensesProvider({ householdId, myRole, userId, onMembershipLost
       return () => activityListeners.current.delete(fn);
     },
     inviteCode: household?.invite_code ?? '',
-    inviteExpiresAt: household?.invite_expires_at ?? null,
     /** Código nuevo: el anterior deja de servir. Devuelve un mensaje de error o null. */
     rotateInviteCode: async () => {
       const { data, error: err } = await supabase.rpc('rotate_invite_code');

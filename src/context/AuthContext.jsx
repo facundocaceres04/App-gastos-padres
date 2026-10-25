@@ -97,7 +97,7 @@ export function AuthProvider({ children }) {
     joinHousehold: async (code) => {
       const { data, error } = await supabase.rpc('join_household', { p_code: code });
       if (error) throw error;
-      if (!data) throw new Error('Código inválido o vencido. Pedile al otro progenitor que te pase uno nuevo.');
+      if (!data) throw new Error('Código inválido. Revisalo o pedile al otro progenitor que te lo vuelva a pasar.');
       await loadMembership();
     },
   };

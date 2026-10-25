@@ -25,7 +25,7 @@ Incluye:
   "pendiente".
 - **Saldo de meses anteriores**: lo que quedó sin saldar se arrastra y se muestra el total para quedar
   al día (también en el resumen de WhatsApp).
-- **Seguridad**: el código de invitación es aleatorio, vence a los 7 días y se puede renovar; tras 5
+- **Seguridad**: el código de invitación es aleatorio, no vence y se puede renovar (el anterior deja de servir); tras 5
   intentos fallidos (por usuario, o 20 por IP) se bloquea 15 minutos; se puede quitar al otro
   integrante o salir de la familia; "olvidé mi contraseña"; cabeceras de seguridad (CSP, anti-iframe)
   en `vercel.json`; límites de largo y valores válidos en la base.
@@ -51,9 +51,10 @@ npm run dev                      # http://localhost:5173
   `activity` (append-only, escrita solo por triggers).
 - `004_receipts_reviews.sql`: columnas de comprobante y revisión, `review_expense()` (solo el otro
   progenitor puede revisar), bucket privado `comprobantes` con políticas por familia.
-- `005_security.sql`: código con `gen_random_bytes` y vencimiento, `rotate_invite_code()`,
+- `005_security.sql`: código con `gen_random_bytes`, `rotate_invite_code()`,
   intentos fallidos en `join_attempts` (no accesible desde la app), `leave_household()`,
   `remove_partner()` y restricciones `check` de largo/valores.
+- `006_invite_no_expiry.sql`: el código de invitación deja de vencer.
 - Los cambios de esquema se aplican a mano (no hay Supabase CLI vinculado): ejecutar el `.sql` contra
   `POSTGRES_URL_NON_POOLING` de `.env.local`.
 
