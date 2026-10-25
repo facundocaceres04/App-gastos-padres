@@ -42,6 +42,10 @@ resto; la escala `slate` de Tailwind está redefinida con grises cálidos en `sr
 cambiar la paleta es tocar solo esos tokens. Pocas cajas: el balance es una frase con el monto grande y
 los gastos se leen como un registro, con el día a la izquierda.
 
+De [React Bits](https://github.com/DavidHDev/react-bits) (© David Haz, MIT + Commons Clause):
+`Counter` (en `src/components/vendor/`) hace rodar el monto del balance cuando cambia, y el gesto de
+deslizar para borrar (`SwipeToDelete`) está adaptado de su `SwipeRow`.
+
 Ideas de análisis y modo oscuro tomadas de [Hormigah](https://github.com/Jaolmos/hormigah-expense-tracker).
 
 ## Desarrollo

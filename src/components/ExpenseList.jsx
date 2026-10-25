@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Check, Lock, Paperclip, Pencil, Search, Trash2, X } from 'lucide-react';
 import { useExpenses } from '../context/ExpensesContext';
 import { getCategory } from '../data/categories';
+import SwipeToDelete from './SwipeToDelete';
 import { formatMoney, todayISO } from '../utils/formatters';
 
 const WEEKDAYS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
@@ -93,7 +94,9 @@ export default function ExpenseList({ onEdit, onDelete, onAdd, onReopen }) {
             >
               {t.label}
               {t.count != null && (
-                <span className="rounded-full bg-brand-600 px-1.5 text-[11px] leading-[18px] font-semibold text-white tabular-nums">{t.count}</span>
+                <span className="rounded-full bg-brand-600 px-1.5 text-[11px] leading-[18px] font-semibold text-white tabular-nums">
+                  {t.count}
+                </span>
               )}
             </button>
           ))}
@@ -131,7 +134,10 @@ export default function ExpenseList({ onEdit, onDelete, onAdd, onReopen }) {
           ) : (
             <>
               <p className="text-[15px] text-slate-600">Ningún gasto cargado en {monthLower}.</p>
-              <button onClick={onAdd} className="mt-1 text-[15px] font-medium text-slate-900 underline decoration-slate-300 underline-offset-[3px]">
+              <button
+                onClick={onAdd}
+                className="mt-1 text-[15px] font-medium text-slate-900 underline decoration-slate-300 underline-offset-[3px]"
+              >
                 Cargar el primero
               </button>
             </>
@@ -151,50 +157,69 @@ export default function ExpenseList({ onEdit, onDelete, onAdd, onReopen }) {
                   {g.items.map((e) => {
                     const cat = getCategory(e.category);
                     const observed = e.reviewStatus === 'observado';
-                    const meta = [e.child, cat.label, e.createdBy && e.createdBy !== userId ? `cargó ${nameOf(e.createdBy)}` : null].filter(Boolean);
+                    const meta = [e.child, cat.label, e.createdBy && e.createdBy !== userId ? `cargó ${nameOf(e.createdBy)}` : null].filter(
+                      Boolean,
+                    );
                     return (
-                      <li key={e.id} className="group flex items-start rounded-[10px] transition-colors hover:bg-white/70">
-                        <button onClick={() => onEdit(e)} className="flex min-w-0 flex-1 items-start justify-between gap-3 py-3 pr-1 pl-2 text-left">
-                          <div className="min-w-0">
-                            <h4 className={`truncate text-[15px] leading-snug font-medium ${observed ? 'text-slate-500' : 'text-slate-900'}`}>{e.concept}</h4>
-                            <p className="mt-0.5 truncate text-[13px] text-slate-500">{meta.join(' · ')}</p>
-                          </div>
-                          <div className="shrink-0 text-right">
-                            <span
-                              className={`flex items-center justify-end gap-1 text-[15px] leading-snug font-semibold tabular-nums ${
-                                observed ? 'text-slate-400 line-through decoration-1' : 'text-slate-900'
-                              }`}
+                      <li key={e.id}>
+                        <SwipeToDelete onDelete={() => onDelete(e)} disabled={locked} label="Borrar">
+                          <div className="group flex items-start transition-colors hover:bg-white">
+                            <button
+                              onClick={() => onEdit(e)}
+                              className="flex min-w-0 flex-1 items-start justify-between gap-3 py-3 pr-1 pl-2 text-left"
                             >
-                              {e.receiptPath && <Paperclip size={13} className="text-slate-400" aria-label="Con comprobante" />}
-                              {formatMoney(e.amount)}
-                            </span>
-                            {observed ? (
-                              <span className="mt-0.5 block text-[13px] text-amber-700">Observado</span>
-                            ) : isToReview(e) ? (
-                              <span className="mt-0.5 block text-[13px] font-medium text-brand-600">Para revisar</span>
-                            ) : (
-                              <span className="mt-0.5 flex items-center justify-end gap-1.5 text-[13px] text-slate-500">
-                                <span className={`h-1.5 w-1.5 rounded-full ${e.paidBy === 'padre' ? 'bg-padre' : 'bg-madre'}`} />
-                                {profiles[e.paidBy].name}
-                                {e.reviewStatus === 'aceptado' && <Check size={13} strokeWidth={2.5} className="text-sage-500" aria-label="Aceptado" />}
-                              </span>
-                            )}
+                              <div className="min-w-0">
+                                <h4
+                                  className={`truncate text-[15px] leading-snug font-medium ${observed ? 'text-slate-500' : 'text-slate-900'}`}
+                                >
+                                  {e.concept}
+                                </h4>
+                                <p className="mt-0.5 truncate text-[13px] text-slate-500">{meta.join(' · ')}</p>
+                              </div>
+                              <div className="shrink-0 text-right">
+                                <span
+                                  className={`flex items-center justify-end gap-1 text-[15px] leading-snug font-semibold tabular-nums ${
+                                    observed ? 'text-slate-400 line-through decoration-1' : 'text-slate-900'
+                                  }`}
+                                >
+                                  {e.receiptPath && <Paperclip size={13} className="text-slate-400" aria-label="Con comprobante" />}
+                                  {formatMoney(e.amount)}
+                                </span>
+                                {observed ? (
+                                  <span className="mt-0.5 block text-[13px] text-amber-700">Observado</span>
+                                ) : isToReview(e) ? (
+                                  <span className="mt-0.5 block text-[13px] font-medium text-brand-600">Para revisar</span>
+                                ) : (
+                                  <span className="mt-0.5 flex items-center justify-end gap-1.5 text-[13px] text-slate-500">
+                                    <span className={`h-1.5 w-1.5 rounded-full ${e.paidBy === 'padre' ? 'bg-padre' : 'bg-madre'}`} />
+                                    {profiles[e.paidBy].name}
+                                    {e.reviewStatus === 'aceptado' && (
+                                      <Check size={13} strokeWidth={2.5} className="text-sage-500" aria-label="Aceptado" />
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                            {/* En escritorio, editar y borrar aparecen al pasar el mouse; en mobile se toca la fila */}
+                            <div className="hidden shrink-0 gap-0.5 self-center pr-1 lg:flex lg:opacity-0 lg:transition-opacity lg:group-hover:opacity-100 lg:focus-within:opacity-100">
+                              <button
+                                onClick={() => onEdit(e)}
+                                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                                aria-label={`Editar ${e.concept}`}
+                              >
+                                <Pencil size={14} />
+                              </button>
+                              <button
+                                onClick={() => onDelete(e)}
+                                disabled={locked}
+                                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
+                                aria-label={`Eliminar ${e.concept}`}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </div>
-                        </button>
-                        {/* En escritorio, editar y borrar aparecen al pasar el mouse; en mobile se toca la fila */}
-                        <div className="hidden shrink-0 gap-0.5 self-center pr-1 lg:flex lg:opacity-0 lg:transition-opacity lg:group-hover:opacity-100 lg:focus-within:opacity-100">
-                          <button onClick={() => onEdit(e)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label={`Editar ${e.concept}`}>
-                            <Pencil size={14} />
-                          </button>
-                          <button
-                            onClick={() => onDelete(e)}
-                            disabled={locked}
-                            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
-                            aria-label={`Eliminar ${e.concept}`}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                        </SwipeToDelete>
                       </li>
                     );
                   })}

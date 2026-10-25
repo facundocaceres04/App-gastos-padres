@@ -2,14 +2,35 @@ import { Check, Eye, Info, Lock } from 'lucide-react';
 import { useExpenses } from '../context/ExpensesContext';
 import { MONTHS, formatMoney } from '../utils/formatters';
 import { round2 } from '../utils/calculator';
+import Counter from './vendor/Counter';
 
-/** "$56.574,75" con los centavos más chicos: el número entero es lo que importa. */
-export function Amount({ value, className = '' }) {
+// Ajustes del contador: rueda rápido y sin rebote exagerado; no anima al aparecer.
+const ROLL = { locale: 'es-AR', duration: 0.65, bounce: 0.12, stagger: 0.035, fade: 0.18, intro: false, fontSize: '1em' };
+
+/**
+ * "$56.574,75" con los centavos más chicos: el número entero es lo que importa.
+ * Con `animated`, cuando el monto cambia (por ejemplo, el otro cargó un gasto) los dígitos ruedan
+ * hasta el valor nuevo, así se nota qué cambió.
+ */
+export function Amount({ value, className = '', animated = false }) {
   const [whole, cents] = formatMoney(value).split(',');
+  if (!animated) {
+    return (
+      <span className={`font-display tabular-nums ${className}`}>
+        {whole}
+        {cents && <span className="text-[0.55em] align-[0.62em] ml-px">,{cents}</span>}
+      </span>
+    );
+  }
+  const n = Math.round(Math.abs(value) * 100);
   return (
     <span className={`font-display tabular-nums ${className}`}>
-      {whole}
-      {cents && <span className="text-[0.55em] align-[0.62em] ml-px">,{cents}</span>}
+      <Counter {...ROLL} value={Math.floor(n / 100)} prefix="$" format={{ maximumFractionDigits: 0 }} />
+      {cents && (
+        <span className="text-[0.55em] align-[0.62em] ml-px">
+          <Counter {...ROLL} value={n % 100} prefix="," minDigits={2} format={{ useGrouping: false }} />
+        </span>
+      )}
     </span>
   );
 }
@@ -73,7 +94,7 @@ export default function HeroCard({ onShowBreakdown, onShowBank, onAskSettle, onC
           <p className="text-[16px] text-slate-700">
             {profiles[s.debtor].name} {config.settled ? 'le pasó' : 'le pasa'} a {profiles[s.creditor].name}
           </p>
-          <Amount value={s.amountToTransfer} className="mt-0.5 block text-[46px] leading-[1.05] font-medium tracking-[-0.03em] text-slate-900" />
+          <Amount animated value={s.amountToTransfer} className="mt-0.5 block text-[46px] leading-[1.05] font-medium tracking-[-0.03em] text-slate-900" />
         </div>
       )}
 
