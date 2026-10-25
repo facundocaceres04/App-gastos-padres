@@ -1,10 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase, friendlyError } from '../lib/supabase';
-import { calculateSettlement } from '../utils/calculator';
+import { calculateSettlement, countable, pendingFromPreviousMonths } from '../utils/calculator';
+import { prepareReceipt } from '../utils/image';
 import { monthKey, monthLabel, todayISO, uid } from '../utils/formatters';
 
 const ExpensesContext = createContext(null);
 const PAGE = 1000; // límite por request de Supabase
+const RECEIPTS = 'comprobantes'; // bucket privado de Supabase Storage
 const UNDO_MS = 6000; // tiempo para deshacer un borrado antes de enviarlo a la base
 const ACTIVITY_LIMIT = 80;
 
@@ -21,6 +23,11 @@ const fromExpenseRow = (r) => ({
   createdAt: r.created_at,
   updatedBy: r.updated_by,
   updatedAt: r.updated_at,
+  receiptPath: r.receipt_path,
+  reviewStatus: r.review_status,
+  reviewNote: r.review_note,
+  reviewedBy: r.reviewed_by,
+  reviewedAt: r.reviewed_at,
 });
 const toExpenseRow = (e) => ({
   concept: e.concept,
@@ -29,6 +36,7 @@ const toExpenseRow = (e) => ({
   child: e.child ?? '',
   category: e.category,
   date: e.date,
+  ...(e.receiptPath !== undefined && { receipt_path: e.receiptPath }),
 });
 const fromConfigRow = (r) => ({
   fatherPct: r.father_pct,
@@ -209,7 +217,10 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
     () => expenses.filter((e) => e.date.startsWith(key)).sort((a, b) => b.date.localeCompare(a.date)),
     [expenses, key],
   );
-  const settlement = useMemo(() => calculateSettlement(monthExpenses, config.fatherPct), [monthExpenses, config.fatherPct]);
+  // Los gastos observados no cuentan para el balance hasta que se resuelvan.
+  const settlement = useMemo(() => calculateSettlement(countable(monthExpenses), config.fatherPct), [monthExpenses, config.fatherPct]);
+  const observed = useMemo(() => monthExpenses.filter((e) => e.reviewStatus === 'observado'), [monthExpenses]);
+  const previousPending = useMemo(() => pendingFromPreviousMonths(expenses, key, configFor), [expenses, key, configFor]);
 
   const profiles = useMemo(
     () => ({
@@ -259,7 +270,22 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
     if (!pending) return Promise.resolve(null);
     clearTimeout(pending.timer);
     pendingDeletes.current.delete(id);
-    return commit(supabase.from('expenses').delete().eq('id', id), () => setExpenses((xs) => [pending.expense, ...xs]));
+    return commit(supabase.from('expenses').delete().eq('id', id), () => setExpenses((xs) => [pending.expense, ...xs])).then((err) => {
+      if (!err && pending.expense.receiptPath) supabase.storage.from(RECEIPTS).remove([pending.expense.receiptPath]);
+      return err;
+    });
+  };
+
+  /** Sube un comprobante a <familia>/<gasto>/… y devuelve { path } o { error }. */
+  const uploadReceipt = async (expenseId, file) => {
+    try {
+      const { blob, type, ext } = await prepareReceipt(file);
+      const path = `${householdId}/${expenseId}/${uid()}.${ext}`;
+      const { error: err } = await supabase.storage.from(RECEIPTS).upload(path, blob, { contentType: type });
+      return err ? { error: friendlyError(err) } : { path };
+    } catch (e) {
+      return { error: e.message };
+    }
   };
 
   const value = {
@@ -295,6 +321,9 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
     config,
     configFor,
     settlement,
+    observed,
+    previousPending,
+    goToMonth: (k) => setCurrent({ year: Number(k.slice(0, 4)), month: Number(k.slice(5, 7)) - 1 }),
     shiftMonth: (delta) =>
       setCurrent(({ year, month }) => {
         const d = new Date(year, month + delta, 1);
@@ -316,19 +345,58 @@ export function ExpensesProvider({ householdId, myRole, userId, children: node }
       return commit(supabase.from('households').update({ children: list }).eq('id', householdId), () => setHousehold(prev));
     },
 
-    // CRUD de gastos
-    addExpense: (expense) => {
+    // CRUD de gastos. `receipt`: { file } para adjuntar/reemplazar, { remove: true } para quitarlo.
+    addExpense: async (expense, receipt) => {
       const id = uid();
-      setExpenses((xs) => [{ ...expense, id }, ...xs]);
-      return commit(
-        supabase.from('expenses').insert({ id, household_id: householdId, created_by: userId, ...toExpenseRow(expense) }),
+      let receiptPath = null;
+      if (receipt?.file) {
+        const up = await uploadReceipt(id, receipt.file);
+        if (up.error) return `No se pudo subir el comprobante: ${up.error}`;
+        receiptPath = up.path;
+      }
+      const row = { ...expense, id, receiptPath, createdBy: userId, createdAt: new Date().toISOString(), reviewStatus: 'pendiente' };
+      setExpenses((xs) => [row, ...xs]);
+      const err = await commit(
+        supabase.from('expenses').insert({ id, household_id: householdId, ...toExpenseRow({ ...expense, receiptPath }) }),
         () => setExpenses((xs) => xs.filter((e) => e.id !== id)),
       );
+      if (err && receiptPath) supabase.storage.from(RECEIPTS).remove([receiptPath]);
+      return err;
     },
-    updateExpense: (id, patch) => {
+    updateExpense: async (id, patch, receipt) => {
       const before = expenses.find((e) => e.id === id);
-      setExpenses((xs) => xs.map((e) => (e.id === id ? { ...e, ...patch } : e)));
-      return commit(supabase.from('expenses').update(toExpenseRow(patch)).eq('id', id), () =>
+      let receiptPath = before?.receiptPath ?? null;
+      if (receipt?.file) {
+        const up = await uploadReceipt(id, receipt.file);
+        if (up.error) return `No se pudo subir el comprobante: ${up.error}`;
+        receiptPath = up.path;
+      } else if (receipt?.remove) {
+        receiptPath = null;
+      }
+      const full = { ...patch, receiptPath };
+      setExpenses((xs) => xs.map((e) => (e.id === id ? { ...e, ...full, reviewStatus: 'pendiente', reviewNote: null } : e)));
+      const err = await commit(supabase.from('expenses').update(toExpenseRow(full)).eq('id', id), () =>
+        setExpenses((xs) => xs.map((e) => (e.id === id ? before : e))),
+      );
+      // Se borra el archivo que ya no se usa (el nuevo si falló; el viejo si se reemplazó o quitó).
+      const orphan = err ? (receiptPath !== before?.receiptPath ? receiptPath : null) : receiptPath !== before?.receiptPath ? before?.receiptPath : null;
+      if (orphan) supabase.storage.from(RECEIPTS).remove([orphan]);
+      return err;
+    },
+    /** URL temporal (1 h) para ver un comprobante privado. */
+    receiptUrl: async (path) => {
+      const { data } = await supabase.storage.from(RECEIPTS).createSignedUrl(path, 3600);
+      return data?.signedUrl ?? null;
+    },
+    /** Aceptar u observar un gasto del otro progenitor. */
+    reviewExpense: (id, status, note) => {
+      const before = expenses.find((e) => e.id === id);
+      setExpenses((xs) =>
+        xs.map((e) =>
+          e.id === id ? { ...e, reviewStatus: status, reviewNote: status === 'observado' ? note : null, reviewedBy: userId } : e,
+        ),
+      );
+      return commit(supabase.rpc('review_expense', { p_id: id, p_status: status, p_note: note ?? null }), () =>
         setExpenses((xs) => xs.map((e) => (e.id === id ? before : e))),
       );
     },

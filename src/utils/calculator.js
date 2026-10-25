@@ -77,3 +77,41 @@ export function totalsByCategory(expenses) {
     return acc;
   }, {});
 }
+
+/** Gastos que cuentan para el balance: los observados quedan afuera hasta resolverse. */
+export const countable = (expenses) => expenses.filter((e) => e.reviewStatus !== 'observado');
+
+/**
+ * Saldo pendiente de meses anteriores que no se marcaron como saldados.
+ * @param {import('../types').Expense[]} expenses todos los gastos
+ * @param {string} currentKey mes actual ("YYYY-MM"); se consideran solo los anteriores
+ * @param {(key: string) => { fatherPct: number, settled: boolean }} configFor configuración de cada mes
+ */
+export function pendingFromPreviousMonths(expenses, currentKey, configFor) {
+  const byMonth = {};
+  countable(expenses).forEach((e) => {
+    const k = e.date.slice(0, 7);
+    if (k < currentKey) (byMonth[k] ??= []).push(e);
+  });
+
+  const months = Object.keys(byMonth)
+    .sort()
+    .map((key) => {
+      const cfg = configFor(key);
+      if (cfg.settled) return null;
+      const s = calculateSettlement(byMonth[key], cfg.fatherPct);
+      return s.isBalanced ? null : { key, balanceFather: s.balanceFather, debtor: s.debtor, amount: s.amountToTransfer };
+    })
+    .filter(Boolean);
+
+  const balanceFather = round2(months.reduce((acc, m) => acc + m.balanceFather, 0));
+  const isBalanced = Math.abs(balanceFather) < 0.005;
+  return {
+    months,
+    balanceFather,
+    debtor: isBalanced ? null : balanceFather > 0 ? 'madre' : 'padre',
+    creditor: isBalanced ? null : balanceFather > 0 ? 'padre' : 'madre',
+    amount: Math.abs(balanceFather),
+    isBalanced,
+  };
+}

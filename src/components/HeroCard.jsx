@@ -1,11 +1,17 @@
-import { ArrowRight, Check, CheckCheck, Info, Landmark, Inbox, LockOpen } from 'lucide-react';
+import { ArrowRight, Check, CheckCheck, Eye, History, Info, Landmark, Inbox, LockOpen } from 'lucide-react';
 import { useExpenses } from '../context/ExpensesContext';
-import { formatMoney, initial } from '../utils/formatters';
+import { MONTHS, formatMoney, initial } from '../utils/formatters';
+import { round2 } from '../utils/calculator';
 import { StatusBadge } from './Header';
 
 /** Balance mensual: transferencia sugerida + barra proporcional de aportes. */
 export default function HeroCard({ onShowBreakdown, onShowBank, onAskSettle }) {
-  const { settlement: s, profiles, config, monthExpenses, nameOf } = useExpenses();
+  const { settlement: s, profiles, config, monthExpenses, nameOf, observed, previousPending: prev, goToMonth } = useExpenses();
+  const observedTotal = observed.reduce((a, e) => a + e.amount, 0);
+  // Total para quedar al día: este mes (si no está saldado) + lo que quedó de meses anteriores.
+  const totalFather = round2(prev.balanceFather + (config.settled ? 0 : s.balanceFather));
+  const totalDebtor = totalFather > 0 ? 'madre' : 'padre';
+  const totalCreditor = totalFather > 0 ? 'padre' : 'madre';
   const isEmpty = monthExpenses.length === 0;
   const sharePadre = s.total > 0 ? Math.round((s.paidFather / s.total) * 100) : s.pctFather;
   const shareMadre = 100 - sharePadre;
@@ -38,9 +44,11 @@ export default function HeroCard({ onShowBreakdown, onShowBank, onAskSettle }) {
       ) : s.isBalanced ? (
         <div className="py-4 text-center">
           <CheckCheck size={28} className="mx-auto mb-1 text-emerald-500" />
-          <h3 className="text-[14px] font-semibold text-slate-800">Cuentas al día</h3>
-          <p className="mt-0.5 text-[12px] text-slate-500">
-            Ambos cumplieron exactamente la proporción convenida ({s.pctFather}/{s.pctMother}).
+          <h3 className="text-[14px] font-semibold text-slate-800">{s.total > 0 ? 'Cuentas al día' : 'Nada para compensar por ahora'}</h3>
+          <p className="mt-0.5 text-[13px] text-slate-500">
+            {s.total > 0
+              ? `Cada uno aportó exactamente lo acordado (${s.pctFather}/${s.pctMother}).`
+              : 'Los gastos de este mes están en revisión.'}
           </p>
         </div>
       ) : (
@@ -94,6 +102,45 @@ export default function HeroCard({ onShowBreakdown, onShowBank, onAskSettle }) {
             {config.settled ? <LockOpen size={15} /> : <Check size={15} />}
             <span className="whitespace-nowrap">{config.settled ? 'Reabrir mes' : 'Marcar saldado'}</span>
           </button>
+        </div>
+      )}
+
+      {observed.length > 0 && (
+        <p className="mb-3 flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
+          <Eye size={14} className="mt-0.5 shrink-0" />
+          {observed.length === 1 ? '1 gasto observado' : `${observed.length} gastos observados`} ({formatMoney(observedTotal)}) no
+          {observed.length === 1 ? ' cuenta' : ' cuentan'} en el balance hasta que se resuelvan.
+        </p>
+      )}
+
+      {!prev.isBalanced && (
+        <div className="mb-3 rounded-xl border border-slate-200 px-3 py-2.5 text-[12px] text-slate-600">
+          <p className="flex items-center gap-1.5 font-semibold text-slate-800">
+            <History size={14} /> Pendiente de meses anteriores
+          </p>
+          <p className="mt-1">
+            {profiles[prev.debtor].name} le debe <strong className="text-slate-900 tabular-nums">{formatMoney(prev.amount)}</strong> a{' '}
+            {profiles[prev.creditor].name} de meses sin saldar:
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {prev.months.map((m) => (
+              <button
+                key={m.key}
+                onClick={() => goToMonth(m.key)}
+                className="rounded-full bg-slate-100 px-2.5 py-1 text-[12px] font-medium text-slate-700 hover:bg-slate-200"
+              >
+                {MONTHS[Number(m.key.slice(5, 7)) - 1].slice(0, 3)} {m.key.slice(2, 4)} · {formatMoney(m.amount)}
+              </button>
+            ))}
+          </div>
+          {Math.abs(totalFather) >= 0.005 ? (
+            <p className="mt-2 border-t border-slate-100 pt-2">
+              Para quedar al día: {profiles[totalDebtor].name} → {profiles[totalCreditor].name}{' '}
+              <strong className="text-slate-900 tabular-nums">{formatMoney(Math.abs(totalFather))}</strong>
+            </p>
+          ) : (
+            <p className="mt-2 border-t border-slate-100 pt-2">Sumando este mes, quedan a mano.</p>
+          )}
         </div>
       )}
 

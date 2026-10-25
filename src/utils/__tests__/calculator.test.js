@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateSettlement } from '../calculator';
+import { calculateSettlement, countable, pendingFromPreviousMonths } from '../calculator';
 
 const gasto = (paidBy, amount) => ({ paidBy, amount });
 
@@ -45,5 +45,45 @@ describe('calculateSettlement', () => {
 
   it('sin gastos: cuentas al día', () => {
     expect(calculateSettlement([], 50)).toMatchObject({ total: 0, isBalanced: true, debtor: null, creditor: null });
+  });
+});
+
+describe('countable', () => {
+  it('excluye los gastos observados', () => {
+    const xs = [{ reviewStatus: 'pendiente' }, { reviewStatus: 'observado' }, { reviewStatus: 'aceptado' }, {}];
+    expect(countable(xs)).toHaveLength(3);
+  });
+});
+
+describe('pendingFromPreviousMonths', () => {
+  const g = (date, paidBy, amount, extra = {}) => ({ date, paidBy, amount, ...extra });
+  const cfg = (map) => (key) => ({ fatherPct: 50, settled: false, ...map[key] });
+
+  it('suma los meses anteriores no saldados y compensa entre sí', () => {
+    const xs = [
+      g('2026-08-10', 'padre', 100000), // agosto: madre debe 50.000
+      g('2026-09-10', 'madre', 40000), // septiembre: padre debe 20.000
+      g('2026-10-10', 'padre', 999999), // octubre = mes actual, no cuenta
+    ];
+    const r = pendingFromPreviousMonths(xs, '2026-10', cfg({}));
+    expect(r.months.map((m) => m.key)).toEqual(['2026-08', '2026-09']);
+    expect(r).toMatchObject({ balanceFather: 30000, debtor: 'madre', creditor: 'padre', amount: 30000 });
+  });
+
+  it('ignora meses saldados, al día y gastos observados', () => {
+    const xs = [
+      g('2026-07-01', 'padre', 100000), // saldado
+      g('2026-08-01', 'padre', 50000),
+      g('2026-08-02', 'madre', 50000), // agosto al día
+      g('2026-09-01', 'padre', 80000, { reviewStatus: 'observado' }), // no cuenta
+    ];
+    const r = pendingFromPreviousMonths(xs, '2026-10', cfg({ '2026-07': { settled: true } }));
+    expect(r).toMatchObject({ months: [], isBalanced: true, debtor: null, amount: 0 });
+  });
+
+  it('usa el acuerdo de cada mes', () => {
+    const xs = [g('2026-09-01', 'padre', 100000)];
+    const r = pendingFromPreviousMonths(xs, '2026-10', cfg({ '2026-09': { fatherPct: 70 } }));
+    expect(r).toMatchObject({ debtor: 'madre', amount: 30000 });
   });
 });

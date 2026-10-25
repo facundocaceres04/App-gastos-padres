@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Loader2, Lock, Trash2 } from 'lucide-react';
 import Modal, { FormError, btnPrimary, btnSecondary, inputCls, labelCls } from './Modal';
+import ReceiptField from './ReceiptField';
+import ReviewPanel from './ReviewPanel';
 import { useExpenses } from '../context/ExpensesContext';
 import { CATEGORIES, CONCEPT_SUGGESTIONS } from '../data/categories';
 import { amountToInput, parseAmount, todayISO } from '../utils/formatters';
@@ -22,7 +24,9 @@ function emptyForm(monthKeyStr) {
 
 /** Alta y edición de gastos. `expense` presente = modo edición. */
 export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDelete }) {
-  const { addExpense, updateExpense, profiles, childrenList, key, config, nameOf, label } = useExpenses();
+  const { addExpense, updateExpense, profiles, childrenList, key, config, nameOf, label, expenses } = useExpenses();
+  // Versión "en vivo" del gasto (por si el otro lo revisa mientras está abierto).
+  const live = expense ? (expenses.find((e) => e.id === expense.id) ?? expense) : null;
   // Un gasto de un mes saldado se puede ver, pero no modificar (la base también lo impide).
   const locked = Boolean(expense) && config.settled;
   // El componente se monta de nuevo cada vez que se abre (ver `key` en Dashboard),
@@ -31,6 +35,7 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const [receipt, setReceipt] = useState(null); // { file } | { remove: true } | null
 
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }));
 
@@ -56,7 +61,7 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
     setSaving(true);
     setSaveError(null);
     // Se espera la confirmación de la base: si falla, el error queda visible acá y no se cierra.
-    const err = expense ? await updateExpense(expense.id, data) : await addExpense(data);
+    const err = expense ? await updateExpense(expense.id, data, receipt) : await addExpense(data, receipt);
     setSaving(false);
     if (err) {
       setSaveError(`No se pudo guardar: ${err}`);
@@ -203,7 +208,9 @@ export default function ExpenseFormModal({ open, onClose, expense, onSaved, onDe
             </select>
           </div>
         </div>
+          <ReceiptField existingPath={live?.receiptPath} value={receipt} onChange={setReceipt} disabled={locked} />
         </fieldset>
+        {live?.createdBy && <ReviewPanel expense={live} locked={locked} onDone={onSaved} />}
         {expense?.createdBy && (
           <p className="text-[12px] text-slate-500">
             Cargado por {nameOf(expense.createdBy)} · {relativeTime(expense.createdAt)}

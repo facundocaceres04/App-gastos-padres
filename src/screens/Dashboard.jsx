@@ -59,6 +59,8 @@ export default function Dashboard() {
     activity,
     nameOf,
     subscribeActivity,
+    previousPending,
+    observed,
   } = useExpenses();
   const online = useOnline();
 
@@ -144,7 +146,7 @@ export default function Dashboard() {
     });
   };
 
-  const summary = () => buildWhatsAppSummary({ monthLabel: label, settlement, expenses: monthExpenses, profiles });
+  const summary = () => buildWhatsAppSummary({ monthLabel: label, settlement, expenses: monthExpenses, profiles, previousPending });
   const copyText = async (text, okMsg) => setToast((await copyToClipboard(text)) ? okMsg : 'No se pudo copiar');
 
   const view = nav === 'analisis' ? 'analisis' : 'balance';
@@ -303,6 +305,12 @@ export default function Dashboard() {
                 <p>
                   Confirmá que {profiles[settlement.debtor].name} ya le transfirió{' '}
                   <strong className="text-slate-900">{formatMoney(settlement.amountToTransfer)}</strong> a {profiles[settlement.creditor].name}.
+                </p>
+              )}
+              {observed.length > 0 && (
+                <p className="rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
+                  Hay {observed.length === 1 ? '1 gasto observado' : `${observed.length} gastos observados`} sin resolver: al saldar, quedan afuera de
+                  este mes.
                 </p>
               )}
               <p>Los gastos y el acuerdo del mes quedan bloqueados para los dos. Si hace falta corregir algo, se puede reabrir.</p>

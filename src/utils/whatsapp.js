@@ -1,6 +1,6 @@
-import { formatMoney } from './formatters';
+import { MONTHS, formatMoney } from './formatters';
 import { getCategory } from '../data/categories';
-import { totalsByCategory } from './calculator';
+import { countable, totalsByCategory } from './calculator';
 
 /**
  * Arma el resumen de liquidación en formato WhatsApp (*negrita*, _cursiva_).
@@ -9,19 +9,24 @@ import { totalsByCategory } from './calculator';
  * @param {import('../types').Settlement} p.settlement
  * @param {import('../types').Expense[]} p.expenses
  * @param {{padre: import('../types').Profile, madre: import('../types').Profile}} p.profiles
+ * @param {object} [p.previousPending] saldo de meses anteriores sin saldar (pendingFromPreviousMonths)
  */
-export function buildWhatsAppSummary({ monthLabel, settlement: s, expenses, profiles }) {
+export function buildWhatsAppSummary({ monthLabel, settlement: s, expenses, profiles, previousPending }) {
   const nameF = profiles.padre.name;
   const nameM = profiles.madre.name;
   const lines = [];
+  const observed = expenses.filter((e) => e.reviewStatus === 'observado');
 
   lines.push(`🧾 *Cuentas Claras – ${monthLabel}*`);
   lines.push('');
   lines.push(`📊 *Reparto acordado:* ${nameF} ${s.pctFather}% / ${nameM} ${s.pctMother}%`);
-  lines.push(`💰 *Total gastado:* ${formatMoney(s.total)} (${expenses.length} gastos)`);
+  lines.push(`💰 *Total gastado:* ${formatMoney(s.total)} (${expenses.length - observed.length} gastos)`);
+  if (observed.length) {
+    lines.push(`👀 _${observed.length} gasto(s) observado(s) por ${formatMoney(observed.reduce((a, e) => a + e.amount, 0))} no cuentan hasta resolverse._`);
+  }
   lines.push('');
 
-  const byCat = totalsByCategory(expenses);
+  const byCat = totalsByCategory(countable(expenses));
   const catEntries = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
   if (catEntries.length) {
     lines.push('*Por categoría:*');
@@ -43,6 +48,16 @@ export function buildWhatsAppSummary({ monthLabel, settlement: s, expenses, prof
     if (creditor.alias) lines.push(`🏦 CBU/Alias: *${creditor.alias}*`);
   }
 
+  if (previousPending && !previousPending.isBalanced) {
+    const meses = previousPending.months.map((m) => MONTHS[Number(m.key.slice(5, 7)) - 1].toLowerCase()).join(', ');
+    lines.push('');
+    lines.push(`🗓️ *Pendiente de meses anteriores (${meses}):* ${profiles[previousPending.debtor].name} debe ${formatMoney(previousPending.amount)} a ${profiles[previousPending.creditor].name}`);
+    const total = Math.round((previousPending.balanceFather + s.balanceFather) * 100) / 100;
+    if (Math.abs(total) >= 0.005) {
+      const [deb, cred] = total > 0 ? ['madre', 'padre'] : ['padre', 'madre'];
+      lines.push(`➡️ *Para quedar al día:* ${profiles[deb].name} transfiere ${formatMoney(Math.abs(total))} a ${profiles[cred].name}`);
+    }
+  }
   lines.push('');
   lines.push('_Detalle de gastos:_');
   [...expenses]
@@ -51,7 +66,9 @@ export function buildWhatsAppSummary({ monthLabel, settlement: s, expenses, prof
       const [, m, d] = e.date.split('-');
       const who = e.paidBy === 'padre' ? nameF : nameM;
       const child = e.child ? ` (${e.child})` : '';
-      lines.push(`${d}/${m} · ${e.concept}${child} – ${formatMoney(e.amount)} · pagó ${who}`);
+      const clip = e.receiptPath ? ' 📎' : '';
+      const obs = e.reviewStatus === 'observado' ? ' _(observado, no cuenta)_' : '';
+      lines.push(`${d}/${m} · ${e.concept}${child} – ${formatMoney(e.amount)} · pagó ${who}${clip}${obs}`);
     });
 
   lines.push('');

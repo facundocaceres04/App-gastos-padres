@@ -28,6 +28,15 @@ describe('describeActivity', () => {
     expect(describeActivity({ kind: 'month_settled', actor: 'u1', data: { month: '2026-09' } }, ctx).text).toBe('Martín marcó Septiembre 2026 como saldado');
   });
 
+  it('revisiones y comprobantes', () => {
+    expect(describeActivity({ kind: 'expense_reviewed', actor: 'u1', data: { concept: 'Regalo', amount: 5000, status: 'observado', note: 'No lo acordamos' } }, ctx)).toMatchObject({
+      text: 'Martín observó Regalo',
+      detail: '“No lo acordamos”',
+    });
+    expect(describeActivity({ kind: 'expense_reviewed', actor: 'u2', data: { concept: 'Colegio', amount: 300000, status: 'aceptado' } }, ctx).text).toBe('Laura aceptó Colegio');
+    expect(describeActivity({ kind: 'expense_updated', actor: 'u2', data: { concept: 'Colegio', changes: { receipt: [false, true] } } }, ctx).detail).toBe('adjuntó comprobante');
+  });
+
   it('actualización de CBU', () => {
     expect(describeActivity({ kind: 'family_updated', actor: 'u2', data: { fields: ['madre_alias'] } }, ctx).text).toBe('Laura actualizó el CBU/Alias');
   });

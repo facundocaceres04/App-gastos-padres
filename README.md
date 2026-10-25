@@ -18,6 +18,13 @@ Incluye:
   falsificar); historial de actividad que nadie puede editar ni borrar; aviso en vivo cuando el otro
   cambia algo; saldar o reabrir un mes pide confirmación y un mes saldado queda bloqueado; cada uno
   edita solo su propio CBU/Alias; borrar se puede deshacer durante unos segundos.
+- **Comprobantes**: foto o PDF adjunto a cada gasto (las fotos se comprimen antes de subir), en un
+  bucket privado al que solo acceden los dos miembros de la familia.
+- **Aceptar u observar**: el progenitor que no cargó el gasto puede aceptarlo u observarlo con un
+  motivo; los observados no cuentan en el balance hasta resolverse, y editar un gasto lo vuelve a
+  "pendiente".
+- **Saldo de meses anteriores**: lo que quedó sin saldar se arrastra y se muestra el total para quedar
+  al día (también en el resumen de WhatsApp).
 
 Ideas de análisis y modo oscuro tomadas de [Hormigah](https://github.com/Jaolmos/hormigah-expense-tracker).
 
@@ -38,6 +45,8 @@ npm run dev                      # http://localhost:5173
 - `create_household(...)` y `join_household(code)` son las únicas vías para crear o unirse a una familia.
 - `003_trust.sql`: triggers de autoría y bloqueo de meses saldados, CBU/Alias propio y tabla
   `activity` (append-only, escrita solo por triggers).
+- `004_receipts_reviews.sql`: columnas de comprobante y revisión, `review_expense()` (solo el otro
+  progenitor puede revisar), bucket privado `comprobantes` con políticas por familia.
 - Los cambios de esquema se aplican a mano (no hay Supabase CLI vinculado): ejecutar el `.sql` contra
   `POSTGRES_URL_NON_POOLING` de `.env.local`.
 

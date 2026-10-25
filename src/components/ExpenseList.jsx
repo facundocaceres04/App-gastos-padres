@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Lock, Pencil, Plus, Receipt, Search, Trash2, X } from 'lucide-react';
+import { CheckCircle2, Eye, Lock, Paperclip, Pencil, Plus, Receipt, Search, Trash2, X } from 'lucide-react';
 import { useExpenses } from '../context/ExpensesContext';
 import { getCategory } from '../data/categories';
 import { formatMoney, groupLabel } from '../utils/formatters';
@@ -8,6 +8,8 @@ import { formatMoney, groupLabel } from '../utils/formatters';
 export default function ExpenseList({ onEdit, onDelete, onAdd, onReopen }) {
   const { monthExpenses, profiles, userId, nameOf, config, label } = useExpenses();
   const locked = config.settled;
+  // Gastos que cargó el otro y todavía nadie revisó: los revisa quien está mirando.
+  const isToReview = (e) => e.createdBy && e.createdBy !== userId && (e.reviewStatus ?? 'pendiente') === 'pendiente' && !locked;
   const [payer, setPayer] = useState('todos');
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -16,7 +18,10 @@ export default function ExpenseList({ onEdit, onDelete, onAdd, onReopen }) {
     const q = query.trim().toLowerCase();
     const out = [];
     monthExpenses
-      .filter((e) => (payer === 'todos' || e.paidBy === payer) && (!q || e.concept.toLowerCase().includes(q)))
+      .filter((e) => {
+        const byTab = payer === 'todos' || (payer === 'revisar' ? isToReview(e) : e.paidBy === payer);
+        return byTab && (!q || e.concept.toLowerCase().includes(q));
+      })
       .forEach((e) => {
         const label = groupLabel(e.date);
         const last = out[out.length - 1];
@@ -24,12 +29,15 @@ export default function ExpenseList({ onEdit, onDelete, onAdd, onReopen }) {
         else out.push({ label, items: [e] });
       });
     return out;
-  }, [monthExpenses, payer, query]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monthExpenses, payer, query, userId]);
 
+  const toReview = monthExpenses.filter(isToReview).length;
   const tabs = [
     { id: 'todos', label: 'Todos' },
     { id: 'padre', label: profiles.padre.name },
     { id: 'madre', label: profiles.madre.name },
+    ...(toReview || payer === 'revisar' ? [{ id: 'revisar', label: `Revisar · ${toReview}` }] : []),
   ];
 
   return (
@@ -150,13 +158,29 @@ export default function ExpenseList({ onEdit, onDelete, onAdd, onReopen }) {
                           </div>
                         </div>
                         <div className="shrink-0 text-right">
-                          <span className="font-display block text-[13.5px] font-bold tracking-tight text-slate-900 tabular-nums">
+                          <span
+                            className={`font-display flex items-center justify-end gap-1 text-[14px] font-bold tracking-tight tabular-nums ${
+                              e.reviewStatus === 'observado' ? 'text-slate-400 line-through decoration-1' : 'text-slate-900'
+                            }`}
+                          >
+                            {e.receiptPath && <Paperclip size={12} className="text-slate-500" aria-label="Con comprobante" />}
                             {formatMoney(e.amount)}
                           </span>
-                          <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-slate-100 px-1.5 text-[10px] font-medium text-slate-700">
+                          {e.reviewStatus === 'observado' ? (
+                            <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-amber-50 px-1.5 text-[11px] font-medium text-amber-800">
+                              <Eye size={11} /> Observado
+                            </span>
+                          ) : isToReview(e) ? (
+                            <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-brand-50 px-1.5 text-[11px] font-semibold text-brand-600">
+                              Para revisar
+                            </span>
+                          ) : (
+                          <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-slate-100 px-1.5 text-[11px] font-medium text-slate-700">
                             <span className={`h-1.5 w-1.5 rounded-full ${e.paidBy === 'padre' ? 'bg-padre' : 'bg-madre'}`} />
                             Pagó {profiles[e.paidBy].name}
+                            {e.reviewStatus === 'aceptado' && <CheckCircle2 size={11} className="text-sage-500" aria-label="Aceptado" />}
                           </span>
+                          )}
                         </div>
                       </button>
                       {/* Acciones visibles al pasar el mouse en desktop; en mobile se edita tocando la fila */}

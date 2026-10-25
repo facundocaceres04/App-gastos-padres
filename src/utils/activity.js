@@ -26,7 +26,11 @@ export function describeActivity(entry, { nameOf, profiles }) {
 
   switch (entry.kind) {
     case 'expense_added':
-      return { tone: 'add', text: `${who} agregó ${d.concept}`, detail: `${formatMoney(d.amount)} · pagó ${payer(d.paid_by)} · ${shortDate(d.date)}` };
+      return {
+        tone: 'add',
+        text: `${who} agregó ${d.concept}`,
+        detail: `${formatMoney(d.amount)} · pagó ${payer(d.paid_by)} · ${shortDate(d.date)}${d.receipt ? ' · con comprobante' : ''}`,
+      };
     case 'expense_deleted':
       return { tone: 'delete', text: `${who} borró ${d.concept}`, detail: `${formatMoney(d.amount)} · ${shortDate(d.date)}` };
     case 'expense_updated': {
@@ -37,10 +41,15 @@ export function describeActivity(entry, { nameOf, profiles }) {
         if (field === 'date') return `fecha ${shortDate(from)} → ${shortDate(to)}`;
         if (field === 'category') return `categoría ${getCategory(from).label} → ${getCategory(to).label}`;
         if (field === 'child') return `hijo/a ${from || 'sin asignar'} → ${to || 'sin asignar'}`;
+        if (field === 'receipt') return to ? (from ? 'reemplazó el comprobante' : 'adjuntó comprobante') : 'quitó el comprobante';
         return `${FIELD_LABELS[field] ?? field}: "${from}" → "${to}"`;
       });
       return { tone: 'edit', text: `${who} editó ${d.concept}`, detail: parts.join(' · ') };
     }
+    case 'expense_reviewed':
+      if (d.status === 'aceptado') return { tone: 'settle', text: `${who} aceptó ${d.concept}`, detail: formatMoney(d.amount) };
+      if (d.status === 'observado') return { tone: 'edit', text: `${who} observó ${d.concept}`, detail: d.note ? `“${d.note}”` : undefined };
+      return { tone: 'info', text: `${who} deshizo la revisión de ${d.concept}` };
     case 'split_changed':
       return {
         tone: 'info',
