@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { RotateCcw, Settings } from 'lucide-react';
+import { LogOut, Settings, UserPlus } from 'lucide-react';
 import Modal, { btnPrimary, btnSecondary, inputCls, labelCls } from './Modal';
 import { useExpenses } from '../context/ExpensesContext';
+import { useAuth } from '../context/AuthContext';
 
-/** Ajustes de familia: nombres, CBU/Alias, hijos y restaurar datos de prueba. */
-export default function SettingsModal({ open, onClose, onSaved }) {
-  const { profiles, setProfiles, childrenList, setChildrenList, resetDemo } = useExpenses();
+/** Ajustes de familia: nombres, CBU/Alias, hijos, compartir y cerrar sesión. */
+export default function SettingsModal({ open, onClose, onSaved, onShare }) {
+  const { profiles, setProfiles, childrenList, setChildrenList, myRole, inviteCode } = useExpenses();
+  const { user, signOut } = useAuth();
   const [draft, setDraft] = useState(profiles);
   const [kids, setKids] = useState(childrenList.join(', '));
 
@@ -28,14 +30,6 @@ export default function SettingsModal({ open, onClose, onSaved }) {
     onClose();
   };
 
-  const reset = () => {
-    if (confirm('¿Restaurar los datos de prueba? Se perderán los cambios.')) {
-      resetDemo();
-      onSaved?.('Datos de prueba restaurados');
-      onClose();
-    }
-  };
-
   return (
     <Modal
       open={open}
@@ -50,15 +44,32 @@ export default function SettingsModal({ open, onClose, onSaved }) {
       }
     >
       <div className="space-y-4">
+        <button
+          onClick={onShare}
+          className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-left transition hover:border-brand-600"
+        >
+          <span className="flex items-center gap-2 text-[12px] font-semibold text-slate-700">
+            <UserPlus size={15} className="text-brand-600" /> Compartir con el otro progenitor
+          </span>
+          <span className="font-mono text-[13px] font-bold tracking-widest text-slate-900">{inviteCode}</span>
+        </button>
+
         {[
-          ['padre', 'Progenitor 1'],
-          ['madre', 'Progenitor 2'],
+          ['padre', 'Padre'],
+          ['madre', 'Madre'],
         ].map(([who, legend]) => (
           <fieldset key={who}>
-            <legend className={labelCls}>{legend}</legend>
+            <legend className={labelCls}>
+              {legend} {who === myRole && <span className="normal-case text-brand-600">(vos)</span>}
+            </legend>
             <div className="grid grid-cols-2 gap-2">
               <input value={draft[who].name} onChange={(e) => setField(who, 'name', e.target.value)} placeholder="Nombre" className={inputCls} />
-              <input value={draft[who].alias} onChange={(e) => setField(who, 'alias', e.target.value)} placeholder="CBU o Alias" className={`${inputCls} font-mono text-[12px]`} />
+              <input
+                value={draft[who].alias}
+                onChange={(e) => setField(who, 'alias', e.target.value)}
+                placeholder="CBU o Alias"
+                className={`${inputCls} font-mono text-[12px]`}
+              />
             </div>
           </fieldset>
         ))}
@@ -66,9 +77,13 @@ export default function SettingsModal({ open, onClose, onSaved }) {
           <label className={labelCls} htmlFor="kids">Hijos/as (separados por coma)</label>
           <input id="kids" value={kids} onChange={(e) => setKids(e.target.value)} placeholder="Mateo, Sofía" className={inputCls} />
         </div>
-        <button onClick={reset} className="flex items-center gap-1.5 text-[12px] font-medium text-slate-500 hover:text-slate-800">
-          <RotateCcw size={13} /> Restaurar datos de prueba
-        </button>
+
+        <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-[12px] text-slate-500">
+          <span className="truncate">{user?.email}</span>
+          <button onClick={signOut} className="flex shrink-0 items-center gap-1 font-medium hover:text-slate-800">
+            <LogOut size={13} /> Cerrar sesión
+          </button>
+        </div>
       </div>
     </Modal>
   );

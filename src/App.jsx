@@ -1,155 +1,43 @@
-import { useEffect, useState } from 'react';
-import { CheckCircle2, Percent, Settings, Trash2 } from 'lucide-react';
-import { useExpenses } from './context/ExpensesContext';
-import Header from './components/Header';
-import HeroCard from './components/HeroCard';
-import MetricCards from './components/MetricCards';
-import WhatsAppStrip from './components/WhatsAppStrip';
-import ExpenseList from './components/ExpenseList';
-import BottomNav from './components/BottomNav';
-import ExpenseFormModal from './components/ExpenseFormModal';
-import BreakdownModal from './components/BreakdownModal';
-import BankDetailsModal from './components/BankDetailsModal';
-import SplitConfigModal from './components/SplitConfigModal';
-import SettingsModal from './components/SettingsModal';
-import WhatsAppPreviewModal from './components/WhatsAppPreviewModal';
-import Modal, { btnPrimary, btnSecondary } from './components/Modal';
-import { buildWhatsAppSummary, copyToClipboard } from './utils/whatsapp';
-import { formatMoney } from './utils/formatters';
+import { Loader2 } from 'lucide-react';
+import { isConfigured } from './lib/supabase';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { ExpensesProvider } from './context/ExpensesContext';
+import AuthScreen from './screens/AuthScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
+import Dashboard from './screens/Dashboard';
 
-export default function App() {
-  const { label, settlement, monthExpenses, profiles, deleteExpense } = useExpenses();
+/** Sesión → familia → panel. */
+function Gate() {
+  const { loading, user, membership } = useAuth();
 
-  // Un solo modal abierto a la vez
-  const [modal, setModal] = useState(null); // 'form' | 'breakdown' | 'bank' | 'split' | 'settings' | 'whatsapp' | 'delete'
-  const [editing, setEditing] = useState(null);
-  const [toDelete, setToDelete] = useState(null);
-  const [nav, setNav] = useState('balance');
-  const [toast, setToast] = useState(null);
-  const close = () => setModal(null);
-
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2600);
-    return () => clearTimeout(t);
-  }, [toast]);
-
-  const openNew = () => {
-    setEditing(null);
-    setModal('form');
-  };
-  const openEdit = (expense) => {
-    setEditing(expense);
-    setModal('form');
-  };
-  const askDelete = (expense) => {
-    setToDelete(expense);
-    setModal('delete');
-  };
-
-  const summary = () => buildWhatsAppSummary({ monthLabel: label, settlement, expenses: monthExpenses, profiles });
-  const copyText = async (text, okMsg) => setToast((await copyToClipboard(text)) ? okMsg : 'No se pudo copiar');
-
-  const goTo = (id, navId) => {
-    setNav(navId);
-    if (id) document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-    else window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  if (loading) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-surface">
+        <Loader2 size={24} className="animate-spin text-slate-400" />
+      </div>
+    );
+  }
+  if (!user) return <AuthScreen />;
+  if (!membership) return <OnboardingScreen />;
 
   return (
-    <div className="min-h-dvh bg-surface">
-      <Header onAdd={openNew} onCustomSplit={() => setModal('split')} />
+    <ExpensesProvider key={membership.household_id} householdId={membership.household_id} myRole={membership.role} userId={user.id}>
+      <Dashboard />
+    </ExpensesProvider>
+  );
+}
 
-      <main className="mx-auto max-w-[440px] px-4 pt-3 pb-28 sm:max-w-xl lg:grid lg:max-w-5xl lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-start lg:gap-6 lg:px-8 lg:pt-6 lg:pb-12">
-        <div className="space-y-3.5 lg:sticky lg:top-32">
-          <HeroCard onShowBreakdown={() => setModal('breakdown')} onShowBank={() => setModal('bank')} />
-          <MetricCards />
-          <WhatsAppStrip
-            onCopy={() => copyText(summary(), 'Copiado para enviar por WhatsApp')}
-            onPreview={() => setModal('whatsapp')}
-          />
-          {/* Accesos que en mobile viven en la barra inferior */}
-          <div className="hidden gap-2 lg:flex">
-            <button onClick={() => setModal('split')} className={btnSecondary}>
-              <Percent size={14} /> Acuerdo personalizado
-            </button>
-            <button onClick={() => setModal('settings')} className={btnSecondary}>
-              <Settings size={14} /> Ajustes
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-3.5 lg:mt-0">
-          <ExpenseList onEdit={openEdit} onDelete={askDelete} onAdd={openNew} />
-          <p className="pt-6 text-center text-[11px] text-slate-400">Cuentas Claras · Los datos se guardan solo en este navegador.</p>
-        </div>
-      </main>
-
-      <BottomNav
-        active={nav}
-        onBalance={() => goTo(null, 'balance')}
-        onHistory={() => goTo('historico', 'historico')}
-        onAdd={openNew}
-        onAgreement={() => setModal('split')}
-        onSettings={() => setModal('settings')}
-      />
-
-      <ExpenseFormModal open={modal === 'form'} onClose={close} expense={editing} onSaved={setToast} onDelete={askDelete} />
-      <BreakdownModal open={modal === 'breakdown'} onClose={close} />
-      <BankDetailsModal
-        open={modal === 'bank'}
-        onClose={close}
-        onEditProfiles={() => setModal('settings')}
-        onCopy={async (alias) => {
-          await copyText(alias, 'CBU / Alias copiado al portapapeles');
-          close();
-        }}
-      />
-      <SplitConfigModal open={modal === 'split'} onClose={close} onSaved={setToast} />
-      <SettingsModal open={modal === 'settings'} onClose={close} onSaved={setToast} />
-      <WhatsAppPreviewModal
-        open={modal === 'whatsapp'}
-        onClose={close}
-        text={modal === 'whatsapp' ? summary() : ''}
-        onCopy={() => copyText(summary(), 'Copiado para enviar por WhatsApp')}
-      />
-
-      <Modal
-        open={modal === 'delete' && !!toDelete}
-        onClose={close}
-        title="¿Eliminar este gasto?"
-        icon={Trash2}
-        footer={
-          <>
-            <button onClick={close} className={btnSecondary}>Cancelar</button>
-            <button
-              onClick={() => {
-                deleteExpense(toDelete.id);
-                close();
-                setToast('Gasto eliminado');
-              }}
-              className={btnPrimary}
-            >
-              Eliminar
-            </button>
-          </>
-        }
-      >
-        {toDelete && (
-          <p className="text-[12px] text-slate-600">
-            <strong className="text-slate-900">{toDelete.concept}</strong> · {formatMoney(toDelete.amount)}. El cierre del mes se recalculará
-            automáticamente.
-          </p>
-        )}
-      </Modal>
-
-      {toast && (
-        <div className="fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 lg:bottom-8">
-          <div role="status" className="animate-toast-in flex items-center gap-1.5 rounded-full bg-slate-900 px-3.5 py-2 text-[11px] font-medium whitespace-nowrap text-white shadow-lg">
-            <CheckCircle2 size={14} className="text-emerald-400" /> {toast}
-          </div>
-        </div>
-      )}
-    </div>
+export default function App() {
+  if (!isConfigured) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-surface px-6 text-center text-[13px] text-slate-600">
+        Falta configurar Supabase: definí SUPABASE_URL y SUPABASE_ANON_KEY (ver README).
+      </div>
+    );
+  }
+  return (
+    <AuthProvider>
+      <Gate />
+    </AuthProvider>
   );
 }

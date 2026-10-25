@@ -45,5 +45,9 @@ export const groupLabel = (iso) => {
 
 export const initial = (name) => (name?.trim()[0] ?? '?').toUpperCase();
 
+/** UUID v4 (la base de datos espera ids uuid). */
 export const uid = () =>
-  (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  crypto.randomUUID?.() ??
+  '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) =>
+    (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16),
+  );
