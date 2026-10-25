@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, CheckCircle2, Loader2, Percent, Settings, Trash2, UserPlus } from 'lucide-react';
+import { AlertCircle, ChartPie, CheckCircle2, Loader2, Percent, Settings, Trash2, UserPlus, Wallet } from 'lucide-react';
 import { useExpenses } from '../context/ExpensesContext';
 import Header from '../components/Header';
 import HeroCard from '../components/HeroCard';
@@ -14,6 +14,7 @@ import SplitConfigModal from '../components/SplitConfigModal';
 import SettingsModal from '../components/SettingsModal';
 import ShareModal from '../components/ShareModal';
 import WhatsAppPreviewModal from '../components/WhatsAppPreviewModal';
+import AnalysisView from '../components/analysis/AnalysisView';
 import Modal, { btnPrimary, btnSecondary } from '../components/Modal';
 import { buildWhatsAppSummary, copyToClipboard } from '../utils/whatsapp';
 import { formatMoney } from '../utils/formatters';
@@ -57,10 +58,14 @@ export default function Dashboard() {
   const summary = () => buildWhatsAppSummary({ monthLabel: label, settlement, expenses: monthExpenses, profiles });
   const copyText = async (text, okMsg) => setToast((await copyToClipboard(text)) ? okMsg : 'No se pudo copiar');
 
+  const view = nav === 'analisis' ? 'analisis' : 'balance';
   const goTo = (id, navId) => {
     setNav(navId);
-    if (id) document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-    else window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Si venimos de Análisis, esperamos a que se pinte el panel antes de scrollear.
+    requestAnimationFrame(() => {
+      if (id) document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+      else window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
   };
 
   if (!loaded) {
@@ -79,54 +84,81 @@ export default function Dashboard() {
     <div className="min-h-dvh bg-surface">
       <Header onAdd={openNew} onCustomSplit={() => setModal('split')} />
 
-      <main className="mx-auto max-w-[440px] px-4 pt-3 pb-28 sm:max-w-xl lg:grid lg:max-w-5xl lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-start lg:gap-6 lg:px-8 lg:pt-6 lg:pb-12">
-        <div className="space-y-3.5 lg:sticky lg:top-32">
-          {!partnerJoined && (
-            <button
-              onClick={() => setModal('share')}
-              className="flex w-full items-center gap-3 rounded-2xl border border-brand-100 bg-brand-50 p-3 text-left transition hover:border-brand-600"
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-brand-600 shadow-xs">
-                <UserPlus size={17} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[13px] font-semibold text-slate-900">Invitá a {profiles[otherRole].name}</p>
-                <p className="text-[11px] text-slate-600">Compartile el código para ver los gastos juntos.</p>
-              </div>
-            </button>
-          )}
-          <HeroCard onShowBreakdown={() => setModal('breakdown')} onShowBank={() => setModal('bank')} />
-          <MetricCards />
-          <WhatsAppStrip
-            onCopy={() => copyText(summary(), 'Copiado para enviar por WhatsApp')}
-            onPreview={() => setModal('whatsapp')}
-          />
-          {/* Accesos que en mobile viven en la barra inferior */}
-          <div className="hidden gap-2 lg:flex">
-            <button onClick={() => setModal('split')} className={btnSecondary}>
-              <Percent size={14} /> Acuerdo
-            </button>
-            <button onClick={() => setModal('share')} className={btnSecondary}>
-              <UserPlus size={14} /> Compartir
-            </button>
-            <button onClick={() => setModal('settings')} className={btnSecondary}>
-              <Settings size={14} /> Ajustes
-            </button>
+      <main className="mx-auto max-w-[440px] px-4 pt-3 pb-28 sm:max-w-xl lg:max-w-5xl lg:px-8 lg:pt-5 lg:pb-12">
+        {/* Pestañas de escritorio (en mobile se usa la barra inferior) */}
+        <div className="mb-5 hidden lg:flex">
+          <div className="flex rounded-xl bg-slate-200/60 p-0.5">
+            {[
+              ['balance', 'Balance', Wallet],
+              ['analisis', 'Análisis', ChartPie],
+            ].map(([id, text, Icon]) => (
+              <button
+                key={id}
+                onClick={() => goTo(null, id)}
+                aria-current={view === id ? 'page' : undefined}
+                className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[12px] transition-all ${
+                  view === id ? 'bg-white font-semibold text-slate-900 shadow-xs' : 'font-medium text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Icon size={14} /> {text}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="mt-3.5 lg:mt-0">
-          <ExpenseList onEdit={openEdit} onDelete={askDelete} onAdd={openNew} />
-          <p className="pt-6 text-center text-[11px] text-slate-400">Cuentas Claras · Sincronizado en tiempo real entre los dos.</p>
-        </div>
+        {view === 'analisis' ? (
+          <AnalysisView />
+        ) : (
+          <div className="lg:grid lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-start lg:gap-6">
+            <div className="space-y-3.5 lg:sticky lg:top-32">
+              {!partnerJoined && (
+                <button
+                  onClick={() => setModal('share')}
+                  className="flex w-full items-center gap-3 rounded-2xl border border-brand-100 bg-brand-50 p-3 text-left transition hover:border-brand-600"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-brand-600 shadow-xs">
+                    <UserPlus size={17} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-semibold text-slate-900">Invitá a {profiles[otherRole].name}</p>
+                    <p className="text-[11px] text-slate-600">Compartile el código para ver los gastos juntos.</p>
+                  </div>
+                </button>
+              )}
+              <HeroCard onShowBreakdown={() => setModal('breakdown')} onShowBank={() => setModal('bank')} />
+              <MetricCards />
+              <WhatsAppStrip
+                onCopy={() => copyText(summary(), 'Copiado para enviar por WhatsApp')}
+                onPreview={() => setModal('whatsapp')}
+              />
+              {/* Accesos que en mobile viven en la barra inferior */}
+              <div className="hidden gap-2 lg:flex">
+                <button onClick={() => setModal('split')} className={btnSecondary}>
+                  <Percent size={14} /> Acuerdo
+                </button>
+                <button onClick={() => setModal('share')} className={btnSecondary}>
+                  <UserPlus size={14} /> Compartir
+                </button>
+                <button onClick={() => setModal('settings')} className={btnSecondary}>
+                  <Settings size={14} /> Ajustes
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-3.5 lg:mt-0">
+              <ExpenseList onEdit={openEdit} onDelete={askDelete} onAdd={openNew} />
+              <p className="pt-6 text-center text-[11px] text-slate-400">Cuentas Claras · Sincronizado en tiempo real entre los dos.</p>
+            </div>
+          </div>
+        )}
       </main>
 
       <BottomNav
         active={nav}
         onBalance={() => goTo(null, 'balance')}
-        onHistory={() => goTo('historico', 'historico')}
+        onAnalysis={() => goTo(null, 'analisis')}
         onAdd={openNew}
-        onAgreement={() => setModal('split')}
+        onHistory={() => goTo('historico', 'historico')}
         onSettings={() => setModal('settings')}
       />
 

@@ -21,10 +21,88 @@
   --color-surface: #f8fafc;
 }
 
+/* `static`: se emiten siempre, porque los gráficos los usan vía var() desde JS. */
+@theme static {
+  /* Identidad de cada progenitor en gráficos y barras (paleta validada para daltonismo). */
+  --color-padre: #2a78d6;
+  --color-madre: #1baf7a;
+
+  /* Categorías: orden fijo, el color sigue a la categoría (no a su ranking). */
+  --color-cat-1: #2a78d6;
+  --color-cat-2: #eb6834;
+  --color-cat-3: #1baf7a;
+  --color-cat-4: #eda100;
+  --color-cat-5: #e87ba4;
+  --color-cat-6: #008300;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Modo oscuro: en lugar de agregar `dark:` en cada componente, se redefinen los tokens.
+ * La escala slate se invierte (texto claro, superficies oscuras), `white` pasa a ser el color
+ * de las tarjetas y los tintes pastel pasan a tintes oscuros con texto claro.
+ */
+html.dark {
+  color-scheme: dark;
+
+  --color-surface: #0b1220;
+  --color-white: #131c2b;
+
+  --color-slate-50: #182234;
+  --color-slate-100: #1e293b;
+  --color-slate-200: #2a3648;
+  --color-slate-300: #3b4a5f;
+  --color-slate-400: #7c8aa0;
+  --color-slate-500: #94a3b8;
+  --color-slate-600: #b4c0d0;
+  --color-slate-700: #cbd5e1;
+  --color-slate-800: #e2e8f0;
+  --color-slate-900: #f1f5f9;
+
+  --color-brand-50: #10262d;
+  --color-brand-100: #173640;
+  --color-brand-600: #7cc4d8;
+  --color-brand-700: #a5d8e6;
+
+  --color-sage-50: #13241e;
+  --color-sage-100: #1a3029;
+  --color-sage-500: #7fb3a0;
+  --color-sage-700: #a9d0c1;
+
+  --color-emerald-50: #0f2a22;
+  --color-emerald-100: #14392d;
+  --color-emerald-200: #1b4a3a;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #34d399;
+  --color-emerald-600: #34d399;
+  --color-emerald-700: #6ee7b7;
+  --color-emerald-900: #a7f3d0;
+
+  --color-amber-50: #2d2210;
+  --color-amber-400: #fbbf24;
+  --color-amber-600: #fbbf24;
+  --color-amber-800: #fcd34d;
+
+  --color-padre: #3987e5;
+  --color-madre: #199e70;
+
+  --color-cat-1: #3987e5;
+  --color-cat-2: #d95926;
+  --color-cat-3: #199e70;
+  --color-cat-4: #c98500;
+  --color-cat-5: #d55181;
+  --color-cat-6: #008300;
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+  html.theme-transition,
+  html.theme-transition * {
+    transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease !important;
   }
   body {
     @apply bg-surface text-slate-800 selection:bg-slate-200;

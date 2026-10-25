@@ -1,13 +1,22 @@
-import { CalendarDays, ChevronLeft, ChevronRight, CheckCircle2, Plus, SlidersHorizontal } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CalendarDays, ChevronLeft, ChevronRight, CheckCircle2, Moon, Plus, SlidersHorizontal, Sun } from 'lucide-react';
 import { useExpenses } from '../context/ExpensesContext';
 import { SPLIT_PRESETS } from '../data/categories';
 import { initial } from '../utils/formatters';
+import { setThemePref } from '../utils/theme';
 
 /** App bar: familia, selector de mes, estado y barra de acuerdo (% de reparto). */
 export default function Header({ onAdd, onCustomSplit }) {
   const { profiles, childrenList, label, shiftMonth, config, setFatherPct } = useExpenses();
   const pct = config.fatherPct;
   const isPreset = SPLIT_PRESETS.includes(pct);
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
+  useEffect(() => {
+    const onTheme = (e) => setDark(e.detail.dark);
+    window.addEventListener('cc-theme', onTheme);
+    return () => window.removeEventListener('cc-theme', onTheme);
+  }, []);
+  const toggleTheme = () => setThemePref(dark ? 'claro' : 'oscuro');
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-surface/90 px-4 pt-3 pb-2.5 backdrop-blur-md lg:px-8">
@@ -15,10 +24,10 @@ export default function Header({ onAdd, onCustomSplit }) {
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2.5">
             <div className="flex -space-x-1.5 p-0.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 text-[11px] font-semibold text-white ring-2 ring-white">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-padre text-[11px] font-semibold text-white ring-2 ring-white">
                 {initial(profiles.padre.name)}
               </div>
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sage-500 text-[11px] font-semibold text-white ring-2 ring-white">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-madre text-[11px] font-semibold text-white ring-2 ring-white">
                 {initial(profiles.madre.name)}
               </div>
             </div>
@@ -45,6 +54,14 @@ export default function Header({ onAdd, onCustomSplit }) {
                 <ChevronRight size={14} />
               </button>
             </div>
+            <button
+              onClick={toggleTheme}
+              className="hidden rounded-full border border-slate-200 bg-white p-1.5 text-slate-500 shadow-xs transition hover:text-slate-800 lg:block"
+              aria-label={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+              title={dark ? 'Modo claro' : 'Modo oscuro'}
+            >
+              {dark ? <Sun size={14} /> : <Moon size={14} />}
+            </button>
             <button
               onClick={onAdd}
               className="hidden items-center gap-1 rounded-xl bg-slate-900 px-3 py-1.5 text-[12px] font-semibold text-white shadow-xs transition hover:bg-slate-800 active:scale-[0.98] lg:flex"

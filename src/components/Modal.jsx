@@ -22,7 +22,7 @@ export default function Modal({ open, onClose, title, icon: Icon, children, foot
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true">
-      <div className="animate-fade-in absolute inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={onClose} />
+      <div className="animate-fade-in absolute inset-0 bg-slate-950/40 backdrop-blur-xs dark:bg-black/60" onClick={onClose} />
       <div className="animate-slide-up relative flex max-h-[92dvh] w-full flex-col rounded-t-3xl border border-slate-200 bg-white shadow-xl sm:max-w-sm sm:rounded-2xl">
         <div className="mx-5 flex items-center justify-between border-b border-slate-100 pt-5 pb-2">
           <div className="flex items-center gap-2">

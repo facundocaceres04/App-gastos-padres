@@ -8,6 +8,15 @@ los dos ven y editan los mismos gastos, en tiempo real.
 
 Producción: https://app-gastos-padres.vercel.app (cada push a `main` se publica solo).
 
+Incluye:
+- **Balance mensual** con el reparto acordado (50/50, 60/40, personalizado) y quién le transfiere a quién.
+- **Análisis**: total vs mes anterior, promedio, proyección anual, acumulado del año, evolución de
+  los últimos 6 meses (cuánto pagó cada uno), dona por categoría y gasto por hijo/a.
+- **Modo oscuro** (claro / oscuro / sistema), guardado en el dispositivo.
+- Resumen para WhatsApp, datos para transferir y estado "Saldado" por mes.
+
+Ideas de análisis y modo oscuro tomadas de [Hormigah](https://github.com/Jaolmos/hormigah-expense-tracker).
+
 ## Desarrollo
 
 ```bash
@@ -43,6 +52,8 @@ src/
 │   └── Dashboard.jsx           # Panel principal
 ├── utils/
 │   ├── calculator.js           # Lógica de cierre de mes (cuotas, balances, quién transfiere)
+│   ├── analytics.js            # Series mensuales, promedios, proyección, por categoría / hijo
+│   ├── theme.js                # Tema claro / oscuro / sistema
 │   ├── formatters.js           # Moneda ARS, fechas, meses
 │   └── whatsapp.js             # Resumen formateado + copiar al portapapeles
 ├── data/
@@ -62,7 +73,8 @@ src/
     ├── SettingsModal.jsx       # Nombres, CBU/Alias, hijos, cerrar sesión
     ├── ShareModal.jsx          # Código / link de invitación para el otro progenitor
     ├── WhatsAppPreviewModal.jsx
-    └── Modal.jsx               # Bottom sheet (mobile) / diálogo (desktop)
+    ├── Modal.jsx               # Bottom sheet (mobile) / diálogo (desktop)
+    └── analysis/               # Vista Análisis: AnalysisView, MonthlyBars, CategoryDonut, ChildBars
 ```
 
 La configuración de reparto y el estado "Saldado" se guardan por mes.

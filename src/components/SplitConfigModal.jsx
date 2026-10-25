@@ -45,7 +45,7 @@ export default function SplitConfigModal({ open, onClose, onSaved }) {
             </div>
             <div className="text-right">
               <p className="text-[11px] font-medium text-slate-500">{profiles.madre.name}</p>
-              <p className="font-display text-[28px] leading-none font-bold text-sage-500 tabular-nums">{100 - pct}%</p>
+              <p className="font-display text-[28px] leading-none font-bold text-slate-900 tabular-nums">{100 - pct}%</p>
             </div>
           </div>
           <input
@@ -58,9 +58,9 @@ export default function SplitConfigModal({ open, onClose, onSaved }) {
             className="w-full"
             aria-label={`Porcentaje asignado a ${profiles.padre.name}`}
           />
-          <div className="mt-1 flex h-2 overflow-hidden rounded-full bg-slate-100">
-            <div className="bg-slate-800 transition-all" style={{ width: `${pct}%` }} />
-            <div className="bg-sage-500 transition-all" style={{ width: `${100 - pct}%` }} />
+          <div className="mt-1 flex h-2 gap-[2px] overflow-hidden rounded-full">
+            <div className="rounded-l-full bg-padre transition-all" style={{ width: `${pct}%` }} />
+            <div className="flex-1 rounded-r-full bg-madre transition-all" />
           </div>
           <label className="mt-3 flex items-center gap-2 text-[12px] text-slate-600">
             Valor exacto:

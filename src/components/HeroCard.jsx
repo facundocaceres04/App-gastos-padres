@@ -45,7 +45,7 @@ export default function HeroCard({ onShowBreakdown, onShowBank }) {
             <div className="flex min-w-0 items-center gap-2.5">
               <div
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${
-                  s.debtor === 'madre' ? 'bg-sage-100 text-sage-700' : 'bg-slate-200 text-slate-800'
+                  s.debtor === 'madre' ? 'bg-madre/15 text-slate-900' : 'bg-padre/15 text-slate-900'
                 }`}
               >
                 {initial(profiles[s.debtor].name)}
@@ -100,7 +100,7 @@ export default function HeroCard({ onShowBreakdown, onShowBank }) {
       <div className="space-y-1.5 border-t border-slate-100 pt-2">
         <div className="flex items-center justify-between gap-2 text-[11px] text-slate-600">
           <span className="flex min-w-0 items-center gap-1 font-medium">
-            <span className="h-2 w-2 shrink-0 rounded-full bg-slate-800" />
+            <span className="h-2 w-2 shrink-0 rounded-full bg-padre" />
             <span className="truncate">
               {profiles.padre.name}: {formatMoney(s.paidFather)} ({sharePadre}%)
             </span>
@@ -109,18 +109,22 @@ export default function HeroCard({ onShowBreakdown, onShowBank }) {
             <span className="truncate">
               {profiles.madre.name}: {formatMoney(s.paidMother)} ({shareMadre}%)
             </span>
-            <span className="h-2 w-2 shrink-0 rounded-full bg-sage-500" />
+            <span className="h-2 w-2 shrink-0 rounded-full bg-madre" />
           </span>
         </div>
-        <div className="relative flex h-2 w-full overflow-hidden rounded-full bg-slate-100">
+        <div className={`relative flex h-2 w-full gap-[2px] rounded-full ${s.total > 0 ? '' : 'bg-slate-100'}`}>
           {s.total > 0 && (
             <>
-              <div className="h-full bg-slate-800 transition-all duration-300" style={{ width: `${sharePadre}%` }} />
-              <div className="h-full bg-sage-500 transition-all duration-300" style={{ width: `${shareMadre}%` }} />
+              <div className="h-full rounded-l-full bg-padre transition-all duration-300" style={{ width: `${sharePadre}%` }} />
+              <div className="h-full flex-1 rounded-r-full bg-madre transition-all duration-300" />
             </>
           )}
-          {/* Marca de la cuota acordada */}
-          <div className="absolute top-0 h-full w-0.5 bg-white" style={{ left: `${s.pctFather}%` }} title="Cuota acordada" />
+          {/* Marca de la cuota acordada: sobresale de la barra para no confundirse con la separación */}
+          <div
+            className="absolute -top-1 h-4 w-0.5 -translate-x-1/2 rounded-full bg-slate-900 ring-2 ring-white"
+            style={{ left: `${s.pctFather}%` }}
+            title={`Cuota acordada: ${s.pctFather}% / ${s.pctMother}%`}
+          />
         </div>
         <div className="flex items-center justify-between text-[10px] text-slate-400">
           <span>Objetivo {s.pctFather}% ({formatMoney(s.quotaFather)})</span>

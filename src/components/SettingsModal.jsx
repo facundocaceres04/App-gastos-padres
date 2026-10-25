@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react';
-import { LogOut, Settings, UserPlus } from 'lucide-react';
+import { LogOut, Monitor, Moon, Settings, Sun, UserPlus } from 'lucide-react';
 import Modal, { btnPrimary, btnSecondary, inputCls, labelCls } from './Modal';
 import { useExpenses } from '../context/ExpensesContext';
 import { useAuth } from '../context/AuthContext';
+import { getThemePref, setThemePref } from '../utils/theme';
+
+const THEMES = [
+  ['claro', 'Claro', Sun],
+  ['oscuro', 'Oscuro', Moon],
+  ['sistema', 'Sistema', Monitor],
+];
 
 /** Ajustes de familia: nombres, CBU/Alias, hijos, compartir y cerrar sesión. */
 export default function SettingsModal({ open, onClose, onSaved, onShare }) {
@@ -10,6 +17,7 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
   const { user, signOut } = useAuth();
   const [draft, setDraft] = useState(profiles);
   const [kids, setKids] = useState(childrenList.join(', '));
+  const [theme, setTheme] = useState(getThemePref);
 
   useEffect(() => {
     if (open) {
@@ -44,6 +52,28 @@ export default function SettingsModal({ open, onClose, onSaved, onShare }) {
       }
     >
       <div className="space-y-4">
+        <div>
+          <span className={labelCls}>Apariencia</span>
+          <div className="grid grid-cols-3 rounded-xl bg-slate-200/60 p-0.5">
+            {THEMES.map(([id, text, Icon]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => {
+                  setTheme(id);
+                  setThemePref(id);
+                }}
+                aria-pressed={theme === id}
+                className={`flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-[12px] transition-all ${
+                  theme === id ? 'bg-white font-semibold text-slate-900 shadow-xs' : 'font-medium text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Icon size={13} /> {text}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <button
           onClick={onShare}
           className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-left transition hover:border-brand-600"

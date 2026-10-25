@@ -119,11 +119,8 @@ export default function ExpenseList({ onEdit, onDelete, onAdd }) {
                           <span className="font-display block text-[13.5px] font-bold tracking-tight text-slate-900 tabular-nums">
                             {formatMoney(e.amount)}
                           </span>
-                          <span
-                            className={`mt-0.5 inline-block rounded-full px-1.5 text-[10px] font-medium ${
-                              e.paidBy === 'padre' ? 'bg-slate-100 text-slate-700' : 'bg-sage-100/70 text-sage-700'
-                            }`}
-                          >
+                          <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-slate-100 px-1.5 text-[10px] font-medium text-slate-700">
+                            <span className={`h-1.5 w-1.5 rounded-full ${e.paidBy === 'padre' ? 'bg-padre' : 'bg-madre'}`} />
                             Pagó {profiles[e.paidBy].name}
                           </span>
                         </div>
